@@ -1,0 +1,25 @@
+.title {
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    width: fit-content;
+    height: fit-content;
+    line-height: 1;
+}
+
+.icon {
+    height: 25px;
+    width: 25px;
+    border-radius: 100%;
+}
+
+.title-text {
+    margin: 5px;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+}
