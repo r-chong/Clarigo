@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Content Blocked</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.9);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                color: white;
+                font-family: Arial, sans-serif;
+            }
+
+            .content {
+                text-align: center;
+                padding: 20px;
+                background-color: rgba(0, 0, 0, 0.7);
+                border-radius: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+
+            p {
+                font-size: 16px;
+                margin-bottom: 20px;
+            }
+
+            button {
+                padding: 10px 20px;
+                background-color: #ff0000;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            button:hover {
+                background-color: #cc0000;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="content">
+            <h1>This video has been blocked</h1>
+            <p id="blockReason">Reason: Not educational content</p>
+            <button onclick="overrideBlock()">Override and Continue</button>
+        </div>
+        <script src="iframe.js"></script>
+    </body>
+</html>

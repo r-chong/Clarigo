@@ -1,10 +1,39 @@
 {
     "name": "Clarigo Smart YouTube Blocker",
-    "description": "Description",
+    "description": "Blocks non-educational videos on YouTube using ML",
     "version": "1.0",
     "manifest_version": 3,
     "action": {
         "default_popup": "popup.html",
         "default_icon": "icon.png"
+    },
+    "permissions": ["storage", "activeTab", "scripting", "tabs"],
+    "host_permissions": [
+        "https://www.youtube.com/*",
+        "https://*.youtube.com/*"
+    ],
+    "content_scripts": [
+        {
+            "matches": ["https://www.youtube.com/*", "https://*.youtube.com/*"],
+            "js": ["content.js"],
+            "all_frames": true,
+            "run_at": "document_start",
+            "match_about_blank": true
+        }
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": ["iframe.html", "iframe.js"],
+            "matches": ["https://www.youtube.com/*", "https://*.youtube.com/*"]
+        }
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'; frame-src 'self'"
+    },
+    "sandbox": {
+        "pages": ["iframe.html"]
     }
 }
