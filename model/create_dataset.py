@@ -149,21 +149,34 @@ def main():
     with open('output.csv', mode="w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         
-        writer.writerow(["id", "title", "category","channelTitle","tags"])  # header
+        fieldnames = ["id", "title", "description", "category","channelTitle","tags","label"]  # header
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        
         for v in vids:
+            # clean description
+            desc_clean = " ".join(v["description"].splitlines()).strip()
+
+            # tags
+            tags_list = v.get("tags", "").split(", ") if isinstance(v.get("tags"), str) else []
+            tags_str  = ";".join(tags_list)
+
             # get the category. fallback is "Unknown"
-            cur_tags = []
-            cur_category = categories.get(v["categoryId"], "Unknown")
+            category = categories.get(v["categoryId"], "Unknown")
 
-            # TODO: write to CSV file for dataset
+            # 4) Decide on your label (you’ll have to assign this yourself,
+            #    e.g. based on a lookup of “educational vs non”)
+            label = 1 if category == "Education" else 0
 
-            if "tags" in v:
-                cur_tags = v["tags"]
-            else:
-                cur_tags = []
-
-            writer.writerow([v['id'], v['title'], cur_category, v['channelTitle'], cur_tags])
-            # print(f"{v['id']}: {v['title']} [{cur_category}]")
+            writer.writerow({
+                "id":           v["id"],
+                "title":        v["title"],
+                "description":  desc_clean,
+                "category":     category,
+                "channelTitle": v["channelTitle"],
+                "tags":         tags_str,
+                "label":        label
+            })
 
 if __name__ == "__main__":
     main()
