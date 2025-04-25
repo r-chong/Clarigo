@@ -7,16 +7,50 @@
     <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <div>
+  <div class="body-container">
     <div class="title">
-        <img src="icon.png" class="icon"/>
-        <p class="title-text">Clarigo</p>
+        <div class="left-align"> 
+          <img src="icon.png" class="icon"/>
+          <p class="title-text">Clarigo</p>
+        </div>
+        <div class="switch-box">
+          <p class="switch-text">
+            Lockdown Mode
+          </p>
+          <label class="switch">
+            <input type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        
     </div>
-    <label>
-        Educational
+    <hr>
+    <div class="video-data-container">
+      <h4 class="current-video-title"> 
+        Current Video:
+      </h4> 
+      <label class="custom-checkbox">
+        <p class="educational-text">
+          Educational:
+        </p>
         <input type="checkbox" id="isEducational" />
+        <span class="icon"></span>
       </label>
-      <div class="timer">Time Left: %%%%%</div>
-  </div>  
+      <p class="video-status">Video Status: PLAYING OR NOT</p>
+    </div>
+    <hr>
+    <div class="time-widget">
+      <h4>⏳ Time Left Today: <span id="time-left">Not set</span></h4>
+    
+      <button id="toggle-settings">Set Daily Time Limit</button>
+
+  <div id="settings-panel" class="hidden">
+    <label for="daily-limit">Time Limit (minutes):</label>
+    <input type="number" id="daily-limit" min="0" max="1440" step="15">
+    <button id="save-limit">Save</button>
+  </div>
+</div>
+  <script src="popup.js"></script> 
 </body>
 </html>
