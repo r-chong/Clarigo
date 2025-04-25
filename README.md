@@ -37,3 +37,8 @@ Features will include:
 
 -   [ ] Define a minimal color palette in a shared CSS/SCSS file
 -   [ ] Add basic CSS reset & font rules for the popup
+
+# ==Instructions==
+
+-   Install the Chrome extension in developer mode
+-   Backend: run `venv/scripts/activate.ps1` (could be different on mac)
