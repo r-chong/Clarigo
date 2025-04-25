@@ -66,3 +66,6 @@ model/*.pkl
 
 # Logs
 *.log
+
+# custom
+output.csv
