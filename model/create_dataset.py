@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 import os
+import csv
+import json
 
 # Google auth stuff
 from googleapiclient.discovery import build
@@ -13,6 +15,18 @@ YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 if not YOUTUBE_API_KEY:
     raise RuntimeError("Set YOUTUBE_API_KEY in your .env")
+
+
+# ------------------------------------------------
+# helper function
+# ------------------------------------------------
+def list_to_string(lst):
+    """
+    Converts a Python list (possibly containing dicts/lists) into a
+    single string, with a consistent ordering.
+    """
+    return ", ".join(lst)
+
 
 # this is essentially a helper/wrapper function that just returns the line googleapiclient.discovery.build("youtube", "v3", developerKey=…)
 # it spins up a “YouTube service” object that knows how to call any of the v3 API endpoints (videos.list, search.list, videoCategories.list, etc.).
@@ -60,12 +74,12 @@ def fetch_video_metadata(video_ids):
     for item in resp.get("items", []):
         snip = item["snippet"]
         vids.append({
-            "id": item["id"],                       # str
-            "title": snip["title"],                 # str
-            "description": snip["description"],     # str
-            "categoryId": snip["categoryId"],       # str
-            "tags": snip["tags"],                   # list[str]
-            "channelTitle": snip["channelTitle"]   # str
+            "id": item["id"],                                   # str
+            "title": snip["title"],                             # str
+            "description": snip["description"],                 # str
+            "categoryId": snip["categoryId"],                   # str
+            "tags": list_to_string(snip.get("tags", [])),     # list[str]
+            "channelTitle": snip["channelTitle"]                # str
         })
     return vids
 
@@ -131,13 +145,25 @@ def main():
 
     print(len(ids))
     vids = fetch_video_metadata(ids)
-    for v in vids:
-        # get the category. fallback is "Unknown"
-        cur_category = categories.get(v["categoryId"], "Unknown")
 
-        # TODO: write to CSV file for dataset
+    with open('output.csv', mode="w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+        
+        writer.writerow(["id", "title", "category","channelTitle","tags"])  # header
+        for v in vids:
+            # get the category. fallback is "Unknown"
+            cur_tags = []
+            cur_category = categories.get(v["categoryId"], "Unknown")
 
-        print(f"{v['id']}: {v['title']} [{cur_category}]")
+            # TODO: write to CSV file for dataset
+
+            if "tags" in v:
+                cur_tags = v["tags"]
+            else:
+                cur_tags = []
+
+            writer.writerow([v['id'], v['title'], cur_category, v['channelTitle'], cur_tags])
+            # print(f"{v['id']}: {v['title']} [{cur_category}]")
 
 if __name__ == "__main__":
     main()
