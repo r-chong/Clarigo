@@ -1,3 +1,4 @@
+import re
 from dotenv import load_dotenv
 import os
 import csv
@@ -18,7 +19,7 @@ if not YOUTUBE_API_KEY:
 
 
 # ------------------------------------------------
-# helper function
+# helper functions
 # ------------------------------------------------
 def list_to_string(lst):
     """
@@ -27,11 +28,16 @@ def list_to_string(lst):
     """
     return ", ".join(lst)
 
-
-# this is essentially a helper/wrapper function that just returns the line googleapiclient.discovery.build("youtube", "v3", developerKey=…)
-# it spins up a “YouTube service” object that knows how to call any of the v3 API endpoints (videos.list, search.list, videoCategories.list, etc.).
 def get_youtube_client():
+    """
+    get_youtube_client() is essentially a helper/wrapper function that just returns the line googleapiclient.discovery.build("youtube", "v3", developerKey=…)
+    it spins up a “YouTube service” object that knows how to call any of the v3 API endpoints (videos.list, search.list, videoCategories.list, etc.).
+    """
     return build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+
+def clean_whitespace(s: str) -> str:
+    # collapse ANY whitespace (spaces, tabs, newlines) into single spaces
+    return re.sub(r"\s+", " ", s).strip()
 
 # ------------------------------------------------
 # category mapping
@@ -149,33 +155,33 @@ def main():
     with open('output.csv', mode="w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         
-        fieldnames = ["id", "title", "description", "category","channelTitle","tags","label"]  # header
+        # fieldnames = ["id", "title", "description", "category","channelTitle","tags","label"]  # header
+        fieldnames = ["id", "text", "label"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
         for v in vids:
             # clean description
-            desc_clean = " ".join(v["description"].splitlines()).strip()
-
-            # tags
-            tags_list = v.get("tags", "").split(", ") if isinstance(v.get("tags"), str) else []
-            tags_str  = ";".join(tags_list)
+            title = clean_whitespace(v["title"])
+            desc  = clean_whitespace(v["description"])
+            tags  = ";".join(v.get("tags", "").split(", "))  # already a string, semicolon-delimited
+            tags  = clean_whitespace(tags)
+            channelTitle = v["channelTitle"]
 
             # get the category. fallback is "Unknown"
             category = categories.get(v["categoryId"], "Unknown")
 
-            # 4) Decide on your label (you’ll have to assign this yourself,
+            # Decide on your label (you’ll have to assign this yourself,
             #    e.g. based on a lookup of “educational vs non”)
             label = 1 if category == "Education" else 0
 
+            # concatenate with a special token or just spaces
+            text = " ".join([title, category, channelTitle, desc, tags])
+
             writer.writerow({
-                "id":           v["id"],
-                "title":        v["title"],
-                "description":  desc_clean,
-                "category":     category,
-                "channelTitle": v["channelTitle"],
-                "tags":         tags_str,
-                "label":        label
+                "id":    v["id"],
+                "text":  text,
+                "label": label
             })
 
 if __name__ == "__main__":
