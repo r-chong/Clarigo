@@ -8,6 +8,10 @@ print(sys.path)
 
 import os
 from dotenv import load_dotenv
+print(f"Current working directory: {os.getcwd()}")
+print(f"Loading .env from: {os.path.abspath('.env')}")
+load_dotenv()
+
 import re
 from functools import lru_cache
 from googleapiclient.discovery import build
