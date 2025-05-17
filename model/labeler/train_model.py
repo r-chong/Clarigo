@@ -5,10 +5,16 @@
 - After these votes, Snorkel trains a mini model that learns which rules are usually right and which ones are not-so-important. This way we don't need to do as much human labelling
 """
 import json
+import os
 from snorkel.labeling import labeling_function
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_DIR = os.path.dirname(SCRIPT_DIR)
+
+config_path = os.path.join(MODEL_DIR, "data", "labeling_config.json")
 # load config
-with open("labeler/labeling_config.json", encoding="utf-8") as f:
+with open(config_path, encoding="utf-8") as f: #removed labeler/ from the start
     cfg = json.load(f)
 
 from youtube_client.client import category_mapping
@@ -17,6 +23,7 @@ from youtube_client.client import category_mapping
 CAT_MAP = category_mapping(region_code="US")
 EDU_IDS = {cid for cid, name in CAT_MAP.items() if name in ("Education", "Science & Technology")}
 NON_EDU_CHANNELS = set(cfg["non_edu_channels"])
+EDU_CHANNELS =set(cfg["edu_channels"])
 EDU_KWDS = cfg["keywords"]["edu"]
 NON_EDU_KWDS = cfg["keywords"]["non_edu"]
 
@@ -43,4 +50,9 @@ def lf_channel_pattern(x):
     c = x["channelTitle"].lower().strip()
     return NON_EDU if c in {ch.lower() for ch in NON_EDU_CHANNELS} else ABSTAIN
 
-LFS = [lf_by_category, lf_title_keywords, lf_entertainment_keywords, lf_channel_pattern]
+@labeling_function()
+def lf_channel_edu_pattern(x):
+    c = x["channelTitle"].lower().strip()
+    return EDU if c in {ch.lower() for ch in EDU_CHANNELS} else ABSTAIN
+
+LFS = [lf_by_category, lf_title_keywords, lf_entertainment_keywords, lf_channel_pattern, lf_channel_edu_pattern]

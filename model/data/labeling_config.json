@@ -1,4 +1,26 @@
 {
+    "edu_channels": [
+        "Khan Academy",
+        "MIT OpenCourseWare",
+        "Coursera",
+        "Crash Course",
+        "TED-Ed",
+        "Vsauce",
+        "3Blue1Brown",
+        "Code.org",
+        "Stanford Online",
+        "Harvard Online Learning",
+        "edX",
+        "Numberphile",
+        "SciShow",
+        "Veritasium",
+        "Physics Girl",
+        "freeCodeCamp.org",
+        "Computerphile",
+        "The Coding Train",
+        "Kurzgesagt – In a Nutshell",
+        "Udacity"
+    ],
     "non_edu_channels": [
         "Vevo",
         "Trap Nation",

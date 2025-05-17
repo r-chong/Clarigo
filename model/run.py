@@ -20,7 +20,7 @@ def main():
         from scripts.create_dataset import main as build_main
         return build_main()
     elif args.cmd == "train_labeller":
-        from labeller.train_model import main as train_main
+        from labeler.train_model import main as train_main
         return train_main()
     elif args.cmd == "train_model":
         from scripts.train_model import main as clf_main

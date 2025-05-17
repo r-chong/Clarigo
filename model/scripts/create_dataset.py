@@ -69,7 +69,7 @@ def main():
             # TODO: clean the title and description of whitespace
             cat_name = categories.get(v["categoryId"], "Unknown")
             text  = " ".join([v["title"], cat_name, v["channelTitle"], v["description"], v["tags"]])
-            writer.writerow({"id": v["id"], "text": text, "label": 0})
+            writer.writerow({"id": v["id"], "text": text, "label": 0}) # does this always make it labeled 0?
 
 if __name__ == "__main__":
     main()
