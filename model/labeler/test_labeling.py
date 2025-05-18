@@ -1,3 +1,5 @@
+## I think that this file can just be deleted. -Evan 
+
 from .train_model import LFS, EDU, NON_EDU, ABSTAIN
 
 # Test cases - simulated video metadata

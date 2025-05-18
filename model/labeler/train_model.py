@@ -6,7 +6,33 @@
 """
 import json
 import os
-from snorkel.labeling import labeling_function
+from snorkel.labeling import labeling_function, PandasLFApplier
+from snorkel.labeling.model import LabelModel  # Changed import location
+import pandas as pd
+
+def predict_single_video(video_data):
+    """
+    Predict if a single video is educational or not using direct voting from labeling functions
+    """
+    df = pd.DataFrame([video_data])
+    
+    # Apply labeling functions
+    applier = PandasLFApplier(lfs=LFS)
+    L = applier.apply(df)
+    
+    # Count votes (excluding abstains (-1))
+    votes = L[0]  # Get votes for single video
+    edu_votes = sum(1 for vote in votes if vote == EDU)
+    non_edu_votes = sum(1 for vote in votes if vote == NON_EDU)
+    
+    # Make decision based on majority
+    if edu_votes > non_edu_votes:
+        return True
+    elif non_edu_votes > edu_votes:
+        return False
+    else:
+        return False  # Default to non-educational if tied
+
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 

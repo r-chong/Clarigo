@@ -1,5 +1,6 @@
 import csv
 from youtube_client.client import fetch_video_metadata, category_mapping
+from labeler.train_model import predict_single_video
 # from labeller.youtube_labeling import LFS, lf_by_category  # etc.
 
 def main():
@@ -69,7 +70,12 @@ def main():
             # TODO: clean the title and description of whitespace
             cat_name = categories.get(v["categoryId"], "Unknown")
             text  = " ".join([v["title"], cat_name, v["channelTitle"], v["description"], v["tags"]])
-            writer.writerow({"id": v["id"], "text": text, "label": 0}) # does this always make it labeled 0?
+            video_metadata = {
+                "title": v["title"],
+                "categoryId": cat_name,
+                "channelTitle": v["channelTitle"]
+            }
+            writer.writerow({"id": v["id"], "text": text, "label": predict_single_video(video_metadata)}) # does this always make it labeled 0?
 
 if __name__ == "__main__":
     main()
