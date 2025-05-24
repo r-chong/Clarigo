@@ -59,7 +59,10 @@ ABSTAIN, EDU, NON_EDU = -1, 1, 0
 # the decorator is from Snorkel library
 @labeling_function()
 def lf_by_category(x):
-    return EDU if x["categoryId"] in EDU_IDS else ABSTAIN
+    if x["categoryId"] in EDU_IDS:
+        return EDU
+    else:
+        return ABSTAIN
 
 @labeling_function()
 def lf_title_keywords(x):
@@ -72,6 +75,16 @@ def lf_entertainment_keywords(x):
     return NON_EDU if any(k in t for k in NON_EDU_KWDS) else ABSTAIN
 
 @labeling_function()
+def lf_description_keywords(x):
+    t = x["description"].lower()
+    return EDU if any(k in t for k in EDU_KWDS) else ABSTAIN
+
+@labeling_function()
+def lf_bad_description_keywords(x):
+    t = x["description"].lower()
+    return NON_EDU if any(k in t for k in NON_EDU_KWDS) else ABSTAIN
+
+@labeling_function()
 def lf_channel_pattern(x):
     c = x["channelTitle"].lower().strip()
     return NON_EDU if c in {ch.lower() for ch in NON_EDU_CHANNELS} else ABSTAIN
@@ -81,4 +94,17 @@ def lf_channel_edu_pattern(x):
     c = x["channelTitle"].lower().strip()
     return EDU if c in {ch.lower() for ch in EDU_CHANNELS} else ABSTAIN
 
-LFS = [lf_by_category, lf_title_keywords, lf_entertainment_keywords, lf_channel_pattern, lf_channel_edu_pattern]
+@labeling_function()
+def lf_tag_analysis(x):
+    """Check video tags for educational indicators"""
+    tags = [tag.lower() for tag in x["tags"]]
+    edu_tag_matches = sum(1 for tag in tags if any(k in tag for k in EDU_KWDS))
+    non_edu_tag_matches = sum(1 for tag in tags if any(k in tag for k in NON_EDU_KWDS))
+    
+    if edu_tag_matches > non_edu_tag_matches:
+        return EDU
+    elif non_edu_tag_matches > edu_tag_matches:
+        return NON_EDU
+    return ABSTAIN
+
+LFS = [lf_by_category, lf_title_keywords, lf_entertainment_keywords, lf_channel_pattern, lf_channel_edu_pattern, lf_bad_description_keywords, lf_description_keywords, lf_tag_analysis]

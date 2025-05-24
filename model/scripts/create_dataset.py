@@ -73,7 +73,9 @@ def main():
             video_metadata = {
                 "title": v["title"],
                 "categoryId": cat_name,
-                "channelTitle": v["channelTitle"]
+                "channelTitle": v["channelTitle"],
+                "description": v["description"],
+                "tags": v["tags"]
             }
             writer.writerow({"id": v["id"], "text": text, "label": predict_single_video(video_metadata)}) # does this always make it labeled 0?
 
