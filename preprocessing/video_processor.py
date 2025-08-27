@@ -48,7 +48,6 @@ def main():
     # append to processed JSONL file
     processed_df = pd.concat([processed_df, df_filtered])
     processed_df = processed_df.drop_duplicates(subset=['videoId'])
-    processed_df = processed_df.sort_values('videoId')
     processed_df.to_json(output_path, orient='records', lines=True, mode='w')
     print(f"Appended {len(df_filtered)} rows to {output_path}")
 
