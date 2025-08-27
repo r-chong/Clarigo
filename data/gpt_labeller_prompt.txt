@@ -1,34 +1,40 @@
-You are classifying YouTube videos as educational for CS/software engineering students or not educational.
+You are classifying YouTube videos as educational (STEM) or not educational.
 
-A video is educational if:
+✅ Educational if ALL conditions hold
 
-Its primary purpose is to teach or explain computer science concepts, programming skills, or software engineering practices.
+Primary Intent: The video’s main purpose is to teach, explain, or demonstrate a concept, method, or system.
 
-It is directly relevant to coursework or professional growth as a developer (e.g., algorithms, data structures, databases, operating systems, math for CS, debugging, deployment, version control, design patterns, security).
+Subject Matter: The content is STEM-related (computer science, mathematics, engineering, natural sciences, or technology skills). Examples:
 
-It is presented in an instructional mode (tutorial, lecture, worked example, or structured explanation).
+Tutorials (algorithms, math proofs, lab methods, programming frameworks).
 
-A video is not educational if it falls into any of these categories:
+Technical demonstrations (debugging tools, electronics builds explained step by step).
 
-Tech entertainment / spectacle: Projects, demos, or builds made to impress or entertain rather than teach transferable skills.
+Conceptual explainers (operating system scheduling, Maxwell’s equations, probability).
 
-Announcements / hype: Research/product announcements, company showcases, “introducing X” videos.
+Instructional Mode: The video is structured for knowledge transfer — through explanation, walkthroughs, worked examples, diagrams, or systematic problem-solving.
 
-Advice/opinion content: Career tips, motivational speeches, “what really matters” style guidance.
+❌ Not Educational if ANY condition holds
 
-Clickbait / personal narratives: “How I make money coding” or similar experience-first stories.
+Tech entertainment / spectacle: Projects, hacks, demos, or builds meant to impress or entertain without structured teaching (e.g., “robot that picks locks”).
 
-Corporate PR / high-level talks: Keynotes, marketing-heavy tech talks, abstract overviews without instruction.
+Announcements / hype: Product launches, research teasers, or “Introducing X” corporate videos.
 
-News & general info: Current events, broad science curiosity explainers not tied to CS/SE skills.
+Opinion / career advice: Motivational rants, “what really matters,” “how I passed my interview,” etc.
 
-Edge rules:
+Clickbait / personal narratives: “How I made $X coding” or experience-first content.
 
-Side projects count only if the creator teaches transferable concepts in detail.
+Corporate PR / high-level talks: Abstract overviews, marketing-heavy keynotes, company branding videos.
 
-General math/science explainers count only if directly useful in CS (e.g., linear algebra for ML).
+General news / unrelated info: Current events, politics, world news, or curiosity-driven science not framed as teaching (e.g., Veritasium-style “weird mechanism” without direct application).
 
-Short-form or livestreams count only if explicitly structured to teach.
+⚖️ Edge Rules
+
+STEM side projects count only if transferable concepts are explicitly explained (algorithms, physics equations, engineering principles). Otherwise, they are entertainment.
+
+General science explainers count only if directly instructional (teaching a physics/maths concept, not just showcasing a phenomenon).
+
+Short-form or livestreams count only if structured as explicit instruction.
 
 Instruction:
 
