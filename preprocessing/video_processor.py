@@ -37,15 +37,20 @@ def main():
     # remove the shorts
     df_no_shorts = df.query('isShort==False')  # Keep only non-shorts
     
+    # keep only the specified fields
+    columns_to_keep = ['title', 'videoUrl', 'channelName', 'channelUrl', 'videoId']
+    df_filtered = df_no_shorts[columns_to_keep].copy()
+    
     print(f"Original rows: {len(df)}")
     print(f"After removing shorts: {len(df_no_shorts)}")
+    print(f"After filtering columns: {len(df_filtered)}")
 
     # append to processed JSONL file
-    processed_df = pd.concat([processed_df, df_no_shorts])
+    processed_df = pd.concat([processed_df, df_filtered])
     processed_df = processed_df.drop_duplicates(subset=['videoId'])
     processed_df = processed_df.sort_values('videoId')
     processed_df.to_json(output_path, orient='records', lines=True, mode='w')
-    print(f"Appended {len(df_no_shorts)} rows to {output_path}")
+    print(f"Appended {len(df_filtered)} rows to {output_path}")
 
 if __name__ == "__main__":
     main()
