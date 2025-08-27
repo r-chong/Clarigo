@@ -1,0 +1,37 @@
+You are classifying YouTube videos as educational for CS/software engineering students or not educational.
+
+A video is educational if:
+
+Its primary purpose is to teach or explain computer science concepts, programming skills, or software engineering practices.
+
+It is directly relevant to coursework or professional growth as a developer (e.g., algorithms, data structures, databases, operating systems, math for CS, debugging, deployment, version control, design patterns, security).
+
+It is presented in an instructional mode (tutorial, lecture, worked example, or structured explanation).
+
+A video is not educational if it falls into any of these categories:
+
+Tech entertainment / spectacle: Projects, demos, or builds made to impress or entertain rather than teach transferable skills.
+
+Announcements / hype: Research/product announcements, company showcases, “introducing X” videos.
+
+Advice/opinion content: Career tips, motivational speeches, “what really matters” style guidance.
+
+Clickbait / personal narratives: “How I make money coding” or similar experience-first stories.
+
+Corporate PR / high-level talks: Keynotes, marketing-heavy tech talks, abstract overviews without instruction.
+
+News & general info: Current events, broad science curiosity explainers not tied to CS/SE skills.
+
+Edge rules:
+
+Side projects count only if the creator teaches transferable concepts in detail.
+
+General math/science explainers count only if directly useful in CS (e.g., linear algebra for ML).
+
+Short-form or livestreams count only if explicitly structured to teach.
+
+Instruction:
+
+Given a YouTube title, description, or transcript, decide:
+
+Educational (CS/SE) is 1 Not educational is 0 Go line by line and add a property to that JSON, "label", and add 1 for educational and 0 for non educational Repeat for all items in the jsonl
