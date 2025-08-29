@@ -1,57 +1,4 @@
-import json
-import unicodedata
-import string
-import re
 
-def strip_unicode(input_path, output_path, channel_key='channel name', title_key='video title'):
-    """
-    Normalize unicode in channel name and video title fields for each JSON object in a jsonl file.
-    Writes output to a new jsonl file.
-    """
-    with open(input_path, 'r', encoding='utf-8') as infile, open(output_path, 'w', encoding='utf-8') as outfile:
-        for idx, line in enumerate(infile, 1):
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError as e:
-                print(f"Skipping invalid JSON on line {idx}: {e}")
-                continue
-            if channel_key in obj:
-                obj[channel_key] = unicodedata.normalize('NFKC', obj[channel_key])
-            if title_key in obj:
-                obj[title_key] = unicodedata.normalize('NFKC', obj[title_key])
-            outfile.write(json.dumps(obj, ensure_ascii=False) + '\n')
-
-def remove_emojis(text):
-    emoji_pattern = re.compile("["
-        u"\U0001F600-\U0001F64F"  # emoticons
-        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-        u"\U0001F680-\U0001F6FF"  # transport & map
-        u"\U0001F1E0-\U0001F1FF"  # flags
-        "]+", flags=re.UNICODE)
-    return emoji_pattern.sub(r'', text)
-
-def remove_punctuations_and_lowercase(input_path, output_path, channel_key='channel name', title_key='video title'):
-    """
-    Remove punctuation, emojis, and lowercase channel name and video title fields for each JSON object in a jsonl file.
-    Writes output to a new jsonl file.
-    """
-    def clean(text):
-        text = remove_emojis(text)
-        text = ''.join(ch for ch in text if ch not in string.punctuation)
-        return text.lower()
-
-    with open(input_path, 'r', encoding='utf-8') as infile, open(output_path, 'w', encoding='utf-8') as outfile:
-        for idx, line in enumerate(infile, 1):
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError as e:
-                print(f"Skipping invalid JSON on line {idx}: {e}")
-                continue
-            if channel_key in obj:
-                obj[channel_key] = clean(obj[channel_key])
-            if title_key in obj:
-                obj[title_key] = clean(obj[title_key])
-            outfile.write(json.dumps(obj, ensure_ascii=False) + '\n')
 import pandas as pd
 import os
 import json 
@@ -106,6 +53,4 @@ def main():
     print(f"Appended {len(df_filtered)} rows to {output_path}")
 
 if __name__ == "__main__":
-    # main()
-    strip_unicode("data/labeled_data/1001-1300.jsonl", "test.jsonl")
-    remove_punctuations_and_lowercase("test.jsonl", "test2.jsonl")
+    main()
