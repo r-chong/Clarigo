@@ -21,12 +21,12 @@ pip install -r requirements.txt
 
 ### 2. Build Master Dataset
 ```bash
-python dataset_builder.py
+python model/dataset_builder.py
 ```
 
 ### 3. Train and Evaluate Model
 ```bash
-jupyter notebook educational_video_classification.ipynb
+jupyter notebook model/educational_video_classification.ipynb
 ```
 
 ## Project Structure
@@ -38,8 +38,9 @@ Clarigo/
 │   ├── processed_data/       # Master dataset (CSV & JSONL)
 │   └── labeled_data/         # Original labeled data
 ├── preprocessing/            # Data processing scripts
-├── dataset_builder.py        # Combines normalized files into master dataset
-├── educational_video_classification.ipynb  # Main ML notebook
+├── model/
+│   ├── dataset_builder.py        # Combines normalized files into master dataset
+│   └── educational_video_classification.ipynb  # Main ML notebook
 ├── requirements.txt          # Python dependencies
 └── README.md                # This file
 ```
@@ -118,8 +119,8 @@ print(f"Confidence: {probability[1]:.3f}")
 
 ## Files Description
 
-- **`dataset_builder.py`**: Combines all normalized JSONL files into a master CSV dataset
-- **`educational_video_classification.ipynb`**: Complete ML pipeline with EDA, feature engineering, training, and evaluation
+- **`model/dataset_builder.py`**: Combines all normalized JSONL files into a master CSV dataset
+- **`model/educational_video_classification.ipynb`**: Complete ML pipeline with EDA, feature engineering, training, and evaluation
 - **`data/normalized/`**: Clean, consistent JSONL files with video metadata and labels
 - **`data/processed_data/master_dataset.csv`**: Final combined dataset ready for ML
 - **`models/`**: Saved trained models and preprocessing pipelines (created after training)
