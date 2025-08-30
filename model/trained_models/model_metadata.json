@@ -1,0 +1,70 @@
+{
+  "model_type": "Logistic Regression",
+  "training_date": "2025-08-30T14:26:29.601092",
+  "training_samples": 2259,
+  "test_samples": 565,
+  "features_used": {
+    "text_features": [
+      "combined_text"
+    ],
+    "numerical_features": [
+      "title_word_count",
+      "channel_word_count",
+      "title_char_count",
+      "channel_char_count",
+      "edu_keywords_total"
+    ]
+  },
+  "best_params": {
+    "classifier__C": 10.0,
+    "classifier__class_weight": null,
+    "preprocessor__text__max_features": 3000,
+    "preprocessor__text__ngram_range": [
+      1,
+      2
+    ]
+  },
+  "performance": {
+    "test_accuracy": 0.9256637168141593,
+    "test_auc": 0.9729904201203295,
+    "cv_auc_mean": 0.969449583644533,
+    "cv_auc_std": 0.006127157642627041
+  },
+  "preprocessing": {
+    "tfidf_vocabulary_size": 3000,
+    "educational_keywords": [
+      "tutorial",
+      "lesson",
+      "learn",
+      "course",
+      "education",
+      "teach",
+      "how to",
+      "explained",
+      "guide",
+      "training",
+      "study",
+      "lecture",
+      "class",
+      "exam",
+      "homework",
+      "university",
+      "school",
+      "college",
+      "academic",
+      "research",
+      "science",
+      "math",
+      "physics",
+      "chemistry",
+      "biology",
+      "history",
+      "programming",
+      "coding",
+      "python",
+      "javascript",
+      "computer",
+      "technology"
+    ]
+  }
+}
