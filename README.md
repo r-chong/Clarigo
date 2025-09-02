@@ -19,12 +19,7 @@ This project implements a complete ML pipeline to automatically classify YouTube
 pip install -r requirements.txt
 ```
 
-### 2. Build Master Dataset
-```bash
-python model/dataset_builder.py
-```
-
-### 3. Train and Evaluate Model
+### 2. Train and Evaluate Model
 ```bash
 jupyter notebook model/educational_video_classification.ipynb
 ```
