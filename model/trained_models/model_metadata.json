@@ -1,8 +1,8 @@
 {
   "model_type": "Logistic Regression",
-  "training_date": "2025-08-30T15:37:05.629065",
-  "training_samples": 2259,
-  "test_samples": 565,
+  "training_date": "2025-09-02T22:21:49.231816",
+  "training_samples": 2419,
+  "test_samples": 605,
   "features_used": {
     "text_features": [
       "combined_text"
@@ -18,20 +18,20 @@
   "best_params": {
     "classifier__C": 10.0,
     "classifier__class_weight": null,
-    "preprocessor__text__max_features": 3000,
+    "preprocessor__text__max_features": 5000,
     "preprocessor__text__ngram_range": [
       1,
       2
     ]
   },
   "performance": {
-    "test_accuracy": 0.9256637168141593,
-    "test_auc": 0.9729904201203295,
-    "cv_auc_mean": 0.969449583644533,
-    "cv_auc_std": 0.006127157642627041
+    "test_accuracy": 0.9338842975206612,
+    "test_auc": 0.9715763162722436,
+    "cv_auc_mean": 0.970788213921046,
+    "cv_auc_std": 0.007530924898959906
   },
   "preprocessing": {
-    "tfidf_vocabulary_size": 3000,
+    "tfidf_vocabulary_size": 3687,
     "educational_keywords": [
       "tutorial",
       "lesson",
