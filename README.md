@@ -1,6 +1,6 @@
 # Clarigo - Educational Video Classification
 
-A machine learning project that classifies YouTube videos as educational or non-educational based on video metadata using Logistic Regression.
+A machine learning project that classifies YouTube videos as educational or non-educational based on video metadata using Logistic Regression. It then uses these predictions to improve efficientcy on Youtube through the blocking of uneducational videos
 
 ## Project Overview
 
