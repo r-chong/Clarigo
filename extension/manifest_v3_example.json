@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Clarigo Educational Video Detector",
+  "version": "1.0",
+  "description": "Detects educational content on YouTube using ML",
+  
+  "permissions": [
+    "activeTab"
+  ],
+  
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": [
+        "model/clarigo_classifier.js",
+        "youtube_detector.js"
+      ]
+    }
+  ],
+  
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "model/clarigo_model.json"
+      ],
+      "matches": ["*://www.youtube.com/*"]
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  }
+}
