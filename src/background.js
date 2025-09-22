@@ -1,11 +1,11 @@
 // Redirect to a start-up page upon install
 
-import { browserAPI } from "@helpers/browser.js"
+import browser from "webextension-polyfill";
 
-browserAPI.runtime.onInstalled.addListener((details) => {
+browser.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
-    browserAPI.tabs.create({
-      url: "welcome.html"
-    })
+    browser.tabs.create({
+      url: browser.runtime.getURL("welcome.html")
+    });
   }
-})
+});
