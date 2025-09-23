@@ -1,18 +1,20 @@
 // filters out videos we don't want
 const filterVideos = () => {
-    const videoElements = document.querySelectorAll('yt-lockup-view-model');
+    const videoElements = document.querySelectorAll('ytd-rich-item-renderer');
 
     videoElements.forEach((video) => {
         // variables unused for now. these will be the inputs to the model call
-        const title = video.querySelector('a.yt-lockup-view-model__title span');
+        const title = video.querySelector('yt-lockup-metadata-view-model__title');
         // const channelName = video.querySelector('author');
 
-        if (title && title.indexOf('z') != -1) {
-            video.classList.add('cg-hide');
-            console.log(title)
-        } else {
-            video.classList.remove('cg-hide');
-        }
+        video.classList.add('cg-hide');
+
+        // if (title && title.indexOf('z') != -1) {
+        //     video.classList.add('cg-hide');
+        //     console.log(title)
+        // } else {
+        //     video.classList.remove('cg-hide');
+        // }
     });
 };
 
