@@ -1,1 +1,6 @@
-.cg-hide { display: none !important; }
+.cg-hide { 
+  opacity: 0.1 !important; 
+  transition: opacity 0.3s ease !important;
+}
+
+.cg-hide *,
