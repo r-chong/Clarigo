@@ -8,6 +8,7 @@ Stretch goals:
 - [ ] Model trains somehow based on user
 
 # Chrome Extension
+- [ ] Create improved observer function in content.js
 - [ ] Test fade out selected videos
 - [ ] Connect to JS model
 - [ ] Create popup
