@@ -8,8 +8,8 @@ Stretch goals:
 - [ ] Model trains somehow based on user
 
 # Chrome Extension
-- [ ] Create improved observer function in content.js
-- [ ] Test fade out selected videos
+- [x] Create improved observer function in content.js
+- [x] Test fade out selected videos (videos with "Z" in title)
 - [ ] Connect to JS model
 - [ ] Create popup
 - [ ] Create welcome page
