@@ -91,7 +91,7 @@ class ClarigoClassifier {
      */
     textToTfIdf(text) {
         if (!this.model || !text) {
-            return new Array(this.model.preprocessing.tfidf.vocabulary_list.length).fill(0);
+            return [];
         }
 
         const { vocabulary, idf_values, ngram_range } = this.model.preprocessing.tfidf;
