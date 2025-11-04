@@ -171,17 +171,28 @@ const initializeClarigo = () => {
 // handle YouTube's SPA navigation
 // YouTube doesn't reload the page when navigating, so must re-process on navigation
 let lastUrl = location.href;
-new MutationObserver(() => {
+const titleElement = document.querySelector('title');
+const navigationObserver = new MutationObserver(() => {
     const currentUrl = location.href;
     if (currentUrl !== lastUrl) {
         lastUrl = currentUrl;
         console.log('Clarigo: Page navigation detected, re-initializing...');
         setTimeout(processVideos, 1000);
     }
-}).observe(document.querySelector('title'), { 
-    childList: true, 
-    subtree: true 
 });
+if (titleElement) {
+    navigationObserver.observe(titleElement, { 
+        childList: true, 
+        subtree: true 
+    });
+} else {
+    // Fallback: observe document.head if title is missing
+    console.warn('Clarigo: <title> element not found, using <head> as fallback for navigation observer.');
+    navigationObserver.observe(document.head, { 
+        childList: true, 
+        subtree: true 
+    });
+}
 
 // Wait for DOM to be ready, then initialize
 if (document.readyState === 'loading') {
