@@ -1,6 +1,6 @@
 {
   "conversion_successful": true,
-  "output_file": "js_model\\clarigo_model.json",
+  "output_file": "js_model/clarigo_model.json",
   "file_size_kb": 389.6,
   "vocabulary_size": 3687,
   "total_features": 3692,
