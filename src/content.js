@@ -1,3 +1,14 @@
+const getChannelName = (videoElement) => {
+    const channelSelectors = [
+        '#channel-name a',
+        '#channel-name #text',
+        'ytd-channel-name a',
+        'ytd-channel-name #text',
+        '.ytd-channel-name a',
+        
+    ]
+}
+
 // extract video title from a video element
 const getVideoTitle = (videoElement) => {
     // youtube stores titles in different places depending on the page
