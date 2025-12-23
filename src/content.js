@@ -5,8 +5,19 @@ const getChannelName = (videoElement) => {
         'ytd-channel-name a',
         'ytd-channel-name #text',
         '.ytd-channel-name a',
-        
+        '#text.ytd-channel-name',
+        'yt-formatted-string.ytd-channel-name'
     ]
+
+    for (const selector of channelSelectors) {
+        const channelElement = videoElement.querySelector(selector);
+        if (channelElement) {
+            const channel = channelElement.textContent || '';
+            if (channel.trim()) {
+                return channel.trim();
+            }
+        }
+    }
 }
 
 // extract video title from a video element
