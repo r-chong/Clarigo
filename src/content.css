@@ -1,4 +1,42 @@
+html { outline: 10px solid lime !important; }
+
 .cg-hide { 
   opacity: 0.1 !important; 
   transition: opacity 0.3s ease !important;
+}
+
+/* Works across Home, Search results, Subs feed, etc. */
+:is(
+  ytd-video-renderer,
+  ytd-rich-item-renderer,
+  ytd-grid-video-renderer,
+  ytd-compact-video-renderer,
+  ytd-playlist-renderer,
+  ytd-channel-renderer
+):has(a[href*="/@penguinz0"]) #dismissible {
+  background: red !important;
+  outline: 6px solid yellow !important;
+  box-shadow: 0 0 0 6px black !important;
+  position: relative !important;
+}
+
+/* Label (optional) */
+:is(
+  ytd-video-renderer,
+  ytd-rich-item-renderer,
+  ytd-grid-video-renderer,
+  ytd-compact-video-renderer,
+  ytd-playlist-renderer,
+  ytd-channel-renderer
+):has(a[href*="/@penguinz0"]) #dismissible::before {
+  content: "⚠ PENGUINZ0 ⚠";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  background: black;
+  color: yellow;
+  font-weight: 800;
+  padding: 4px 8px;
+  font-size: 14px;
 }
