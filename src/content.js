@@ -1,3 +1,18 @@
+const classifier = new ClarigoClassifier();
+let modelLoaded = false;
+
+(async () => {
+    try {
+        const modelPath = chrome.runtime.getURL('clarigo_model.json');
+        await classifier.loadModel(modelPath);
+        modelLoaded = true;
+        console.log("loaded model");
+    } catch (error) {
+        console.error("Failed to load model");
+        modelLoaded = false;
+    }
+}) ();
+
 const getChannelName = (videoElement) => {
     const channelSelectors = [
         '#channel-name a',
@@ -18,6 +33,7 @@ const getChannelName = (videoElement) => {
             }
         }
     }
+    return '';
 }
 
 // extract video title from a video element
@@ -54,13 +70,25 @@ const getVideoTitle = (videoElement) => {
 
 // Determine if a video should be hidden - will be subbed out for the model later
 // Currently: hide videos with "Z" or "z" in the title
-const shouldHideVideo = (title) => {
-    if (!title) return false;
-    
-    // Test condition: hide videos with Z in the title (case-insensitive)
-    const hasZ = title.toLowerCase().includes('z');
-    
-    return hasZ;
+const shouldHideVideo = (title, channelName) => {
+    if (!modelLoaded || !classifier.isLoaded) {
+        console.log("Model not loaded, skipping filtering");
+        return false;
+    }
+    if (!title) {
+        console.log("Missing title, showing video");
+        return false;
+    }
+
+    try {
+        const result = classifier.predict(title, channelName || '');
+        console.log(`Clarigo: "${title}" by "${channelName}" => ${result.label} (${(result.confidence * 100).toFixed(1)}%)`);
+        
+        return result.prediction === 0;
+    } catch (error) {
+        console.error('Prediction error', error);
+        return false;
+    }
 };
 
 // Process videos (both initial and new ones)
@@ -97,6 +125,7 @@ const processVideos = () => {
         processedCount++;
         
         const title = getVideoTitle(videoElement);
+        const channelName = getChannelName(videoElement);  
         
         if (!title) {
             console.log('Clarigo: Could not extract title from video element');
@@ -104,12 +133,12 @@ const processVideos = () => {
         }
         
         // Apply filtering logic
-        if (shouldHideVideo(title)) {
+        if (shouldHideVideo(title, channelName)) {  
             videoElement.classList.add('cg-hide');
             hiddenCount++;
-            console.log(`Clarigo: Hiding video - "${title}"`);
+            console.log(`Clarigo: Hiding video - "${title}" by "${channelName}"`); 
         } else {
-            console.log(`Clarigo: Showing video - "${title}"`);
+            console.log(`Clarigo: Showing video - "${title}" by "${channelName}"`);
         }
     });
     
@@ -135,9 +164,13 @@ const initializeClarigo = () => {
     
     // Wait a bit for YouTube to render
     setTimeout(() => {
-        console.log('Clarigo: Processing initial videos...');
+        if (modelLoaded) {
+            console.log("Processing initial Videos");
+        } else {
+            console.log("Clarigo: Model still loading");
+        }
         processVideos();
-    }, 1000);
+    }, 2000);
     
     // Set up MutationObserver to catch new videos as they load
     // YouTube is a SPA (Single Page Application), so we need to watch for dynamic content
@@ -187,8 +220,7 @@ const initializeClarigo = () => {
     
     console.log('Clarigo: MutationObserver active');
     console.log('Clarigo: Extension fully initialized');
-    console.log('Clarigo: Videos with "Z" in title will be faded out');
-};
+    console.log('Clarigo: Non-educational videos will be filtered using ML model');};
 
 // handle YouTube's SPA navigation
 // YouTube doesn't reload the page when navigating, so must re-process on navigation
