@@ -218,7 +218,7 @@ const processVideos = () => {
                 channelUrl: channel.url
             });
         } else {
-            console.log(`Clarigo: Showing video - "${title}"`);
+            console.log(`Clarigo: Showing video - "${title}" by "${channelName}"`);
         }
     });
     
@@ -244,9 +244,13 @@ const initializeClarigo = () => {
     
     // Wait a bit for YouTube to render
     setTimeout(() => {
-        console.log('Clarigo: Processing initial videos...');
+        if (modelLoaded) {
+            console.log("Processing initial Videos");
+        } else {
+            console.log("Clarigo: Model still loading");
+        }
         processVideos();
-    }, 1000);
+    }, 2000);
     
     // Set up MutationObserver to catch new videos as they load
     // YouTube is a SPA (Single Page Application), so we need to watch for dynamic content
