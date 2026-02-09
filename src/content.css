@@ -1,4 +1,10 @@
-.cg-hide { 
-  opacity: 0.1 !important; 
-  transition: opacity 0.3s ease !important;
+/*
+  Clarigo styles
+
+  - `content.js` adds `.cg-hide` to whole "video card" renderer elements.
+*/
+
+/* Hide the entire video card element when Clarigo decides to hide it */
+.cg-hide {
+  display: none !important;
 }
