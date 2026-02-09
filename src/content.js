@@ -1,3 +1,18 @@
+const classifier = new ClarigoClassifier();
+let modelLoaded = false;
+
+(async () => {
+    try {
+        const modelPath = chrome.runtime.getURL('clarigo_model.json');
+        await classifier.loadModel(modelPath);
+        modelLoaded = true;
+        console.log("Clarigo: Model loaded successfully");
+    } catch (error) {
+        console.error("Clarigo: Failed to load model", error);
+        modelLoaded = false;
+    }
+})();
+
 /**
  * Extract channel info from a YouTube "video card" element.
  *
@@ -153,12 +168,24 @@ const getVideoTitleFromWatchAnchor = (videoElement) => {
     return normalizeYouTubeTitle(raw);
 };
 
-// Determine if a video should be hidden (placeholder for the model).
-// Currently: hide videos with "Z" or "z" in the title.
-// Later: replace this with model(title, channelName).
-const shouldHideVideo = ({ title /*, channelName */ }) => {
-    if (!title) return false;
-    return title.toLowerCase().includes('a');
+const shouldHideVideo = ({ title, channelName }) => {
+    if (!modelLoaded || !classifier.isLoaded) {
+        console.log("Clarigo: Model not loaded, skipping filtering");
+        return false;
+    }
+    if (!title) {
+        console.log("Clarigo: Missing title, showing video");
+        return false;
+    }
+
+    try {
+        const result = classifier.predict(title, channelName || '');
+        console.log(`Clarigo: "${title}" by "${channelName}" => ${result.label} (${(result.confidence * 100).toFixed(1)}%)`);
+        return result.prediction === 0;
+    } catch (error) {
+        console.error('Clarigo: Prediction error', error);
+        return false;
+    }
 };
 
 // Process videos (both initial and new ones)
@@ -218,7 +245,7 @@ const processVideos = () => {
                 channelUrl: channel.url
             });
         } else {
-            console.log(`Clarigo: Showing video - "${title}" by "${channelName}"`);
+            console.log(`Clarigo: Showing video - "${title}" by "${channel.name}"`);
         }
     });
     
@@ -300,7 +327,7 @@ const initializeClarigo = () => {
     
     console.log('Clarigo: MutationObserver active');
     console.log('Clarigo: Extension fully initialized');
-    console.log('Clarigo: Videos with "Z" in title will be hidden');
+    console.log('Clarigo: Non-educational videos will be filtered using ML model');
 };
 
 // handle YouTube's SPA navigation
