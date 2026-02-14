@@ -1,3 +1,38 @@
+const classifier = new ClarigoClassifier();
+let modelLoaded = false;
+
+/**
+ * Load the model from the extension's resources
+ */
+const loadModel = async () => {
+    if (modelLoaded) {
+        return true;
+    }
+    
+    try {
+        const modelPath = chrome.runtime.getURL('clarigo_model.json');
+        const success = await classifier.loadModel(modelPath);
+        const wasLoaded = modelLoaded;
+        modelLoaded = success && classifier.isLoaded;
+        
+        if (modelLoaded) {
+            console.log("✅ Clarigo: Model loaded successfully");
+            // If model just finished loading, reprocess any videos that were already on the page
+            if (!wasLoaded) {
+                console.log("Clarigo: Reprocessing videos now that model is loaded...");
+                setTimeout(() => processVideos(), 500);
+            }
+        } else {
+            console.error("❌ Clarigo: Failed to load model");
+        }
+        return modelLoaded;
+    } catch (error) {
+        console.error("❌ Clarigo: Error loading model:", error);
+        modelLoaded = false;
+        return false;
+    }
+};
+
 /**
  * Extract channel info from a YouTube "video card" element.
  *
@@ -153,12 +188,42 @@ const getVideoTitleFromWatchAnchor = (videoElement) => {
     return normalizeYouTubeTitle(raw);
 };
 
-// Determine if a video should be hidden (placeholder for the model).
-// Currently: hide videos with "Z" or "z" in the title.
-// Later: replace this with model(title, channelName).
-const shouldHideVideo = ({ title /*, channelName */ }) => {
-    if (!title) return false;
-    return title.toLowerCase().includes('a');
+/**
+ * Determine if a video should be hidden based on the model prediction.
+ * Hides non-educational videos (prediction === 0).
+ * @param {string} title - Video title
+ * @param {string} channelName - Channel name
+ * @returns {boolean} - True if video should be hidden
+ */
+const shouldHideVideo = ({ title, channelName }) => {
+    // If model isn't loaded, don't hide anything (show all videos)
+    if (!modelLoaded || !classifier.isLoaded) {
+        return false;
+    }
+    
+    // If no title, show the video (can't make a prediction)
+    if (!title) {
+        return false;
+    }
+    
+    try {
+        // Use the classifier to predict if the video is educational
+        const prediction = classifier.predict(title, channelName || '');
+        
+        // Hide non-educational videos (prediction === 0)
+        // Show educational videos (prediction === 1)
+        const shouldHide = prediction.prediction === 0;
+        
+        if (shouldHide) {
+            console.log(`Clarigo: Hiding non-educational video - "${title}" (confidence: ${(prediction.confidence * 100).toFixed(1)}%)`);
+        }
+        
+        return shouldHide;
+    } catch (error) {
+        console.error('Clarigo: Error making prediction:', error);
+        // On error, show the video (fail open)
+        return false;
+    }
 };
 
 // Process videos (both initial and new ones)
@@ -218,7 +283,7 @@ const processVideos = () => {
                 channelUrl: channel.url
             });
         } else {
-            console.log(`Clarigo: Showing video - "${title}" by "${channelName}"`);
+            console.log(`Clarigo: Showing video - "${title}" by "${channel.name}"`);
         }
     });
     
@@ -238,18 +303,23 @@ const debounce = (fn, wait = 300) => {
 const debouncedProcessVideos = debounce(processVideos, 300);
 
 // Initialize the extension
-const initializeClarigo = () => {
+const initializeClarigo = async () => {
     console.log('Clarigo: Initializing extension...');
     console.log('Clarigo: Current URL:', window.location.href);
     
-    // Wait a bit for YouTube to render
+    // Load the model first
+    await loadModel();
+    
+    // Wait a bit for YouTube to render, then process videos
     setTimeout(() => {
         if (modelLoaded) {
-            console.log("Processing initial Videos");
+            console.log("Clarigo: Processing initial videos");
+            processVideos();
         } else {
-            console.log("Clarigo: Model still loading");
+            console.log("Clarigo: Model still loading, will process videos when ready");
+            // Try to process videos anyway (they'll just show all if model isn't loaded)
+            processVideos();
         }
-        processVideos();
     }, 2000);
     
     // Set up MutationObserver to catch new videos as they load
@@ -300,7 +370,11 @@ const initializeClarigo = () => {
     
     console.log('Clarigo: MutationObserver active');
     console.log('Clarigo: Extension fully initialized');
-    console.log('Clarigo: Videos with "Z" in title will be hidden');
+    if (modelLoaded) {
+        console.log('Clarigo: Model loaded - non-educational videos will be hidden');
+    } else {
+        console.log('Clarigo: Model not loaded - all videos will be shown');
+    }
 };
 
 // handle YouTube's SPA navigation
