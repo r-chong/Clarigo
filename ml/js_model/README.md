@@ -89,6 +89,15 @@ Open `test_model.html` in your browser to verify everything works correctly.
 - ✅ Binary classification (threshold = 0.5)
 - ✅ Confidence scoring
 
+## Chrome Extension Build
+
+Before loading the extension, copy the classifier and model into the extension bundle:
+
+- **Node:** `node copy_model.js` (from repo root)
+- **Python:** `python _copy_model.py` (from repo root)
+
+This copies `clarigo_model.json` and `clarigo_classifier.js` from `ml/js_model/` to `extension/model/`.
+
 ## 🌐 Chrome Extension Integration
 
 ### Basic Integration

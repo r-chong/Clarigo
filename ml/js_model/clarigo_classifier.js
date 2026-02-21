@@ -1,6 +1,12 @@
 /**
  * Clarigo Educational Video Classifier - JavaScript Implementation
  * Loads and runs the converted scikit-learn model in the browser
+ *
+ * --- Public API (extension contract) ---
+ * Consumers (e.g. Chrome extension) should rely only on:
+ *   - loadModel(modelPath: string) -> Promise<boolean>
+ *   - predict(title: string, channelName: string) -> { prediction: 0|1, confidence: number, ... }
+ *   - isLoaded: boolean
  */
 
 class ClarigoClassifier {
