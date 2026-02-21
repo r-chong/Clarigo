@@ -10,7 +10,7 @@ Stretch goals:
 # Chrome Extension
 - [x] Create improved observer function in content.js
 - [x] Test fade out selected videos (videos with "Z" in title)
-- [ ] Connect to JS model
+- [x] Connect to JS model
 - [ ] Create popup
 - [ ] Create welcome page
 - [ ] Create settings page
