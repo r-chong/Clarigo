@@ -3,11 +3,10 @@
   "name": "Clarigo - YouTube Filter For Non-Educational Videos",
   "version": "0.8.0",
   "description": "Use YouTube clearly with no distractions",
-  "permissions": ["storage"],
-  "background": {
-    "service_worker": "background.js"
-  },
+  "permissions": ["storage", "tabs"],
+  "background": { "service_worker": "background.js" },
   "options_page": "options.html",
+  "action": { "default_popup": "popup.html" },
   "content_scripts": [
     {
       "matches": ["*://www.youtube.com/*"],

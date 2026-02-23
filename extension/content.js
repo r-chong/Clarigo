@@ -9,6 +9,7 @@ const error = (...args) => console.error(...args);
 
 const classifier = new ClarigoClassifier();
 let modelLoaded = false;
+let clarigoEnabled = true;
 
 async function loadModel() {
     if (modelLoaded) return true;
@@ -89,7 +90,7 @@ function processVideos() {
 
         if (!title) log('Clarigo: Could not extract title from video element');
 
-        if (shouldHideVideo({ title, channelName: channel.name })) {
+        if (clarigoEnabled && shouldHideVideo({ title, channelName: channel.name })) {
             videoElement.classList.add('cg-hide');
             hiddenCount++;
             log(`Clarigo: Hiding video - "${title || '(no title)'}"`, { channelName: channel.name, channelUrl: channel.url });
@@ -110,8 +111,41 @@ const debounce = (fn, wait = 300) => {
 };
 const debouncedProcessVideos = debounce(processVideos, 300);
 
+function unhideAllVideos() {
+    document.querySelectorAll('.cg-hide').forEach((el) => el.classList.remove('cg-hide'));
+}
+
+function resetProcessedState() {
+    document.querySelectorAll('.cg-processed').forEach((el) => el.classList.remove('cg-processed'));
+}
+
+function applyEnabledState(enabled) {
+    clarigoEnabled = enabled;
+    if (enabled) {
+        resetProcessedState();
+        processVideos();
+    } else {
+        unhideAllVideos();
+    }
+}
+
+chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'enabledChanged') {
+        applyEnabledState(msg.enabled !== false);
+    }
+});
+
 async function initializeClarigo() {
     log('Clarigo: Initializing...', window.location.href);
+
+    const data = await new Promise((resolve) => chrome.storage.local.get('enabled', resolve));
+    clarigoEnabled = data.enabled !== false;
+    log('Clarigo: Enabled =', clarigoEnabled);
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'local' || !changes.enabled) return;
+        applyEnabledState(changes.enabled.newValue !== false);
+    });
 
     await loadModel();
 
