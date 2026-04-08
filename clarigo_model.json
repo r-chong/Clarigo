@@ -11111,7 +11111,7 @@
         7.692910530482623
       ],
       "max_features": 5000,
-      "min_df": 2.0,
+      "min_df": 2,
       "max_df": 0.8,
       "ngram_range": [
         1,
@@ -11142,7 +11142,14 @@
         46.80064208507781,
         0.684419422441294
       ]
-    }
+    },
+    "numerical_feature_names": [
+      "title_word_count",
+      "channel_word_count",
+      "title_char_count",
+      "channel_char_count",
+      "edu_keywords_total"
+    ]
   },
   "model": {
     "coef": [
@@ -14848,7 +14855,7 @@
       0,
       1
     ],
-    "C": 10.0
+    "C": 10
   },
   "feature_names": {
     "text_features": [
@@ -14861,5 +14868,64 @@
       "channel_char_count",
       "edu_keywords_total"
     ]
+  },
+  "schema_version": 2,
+  "inference": {
+    "positive_label": 1,
+    "default_filter_mode": "aggressive",
+    "fallback_thresholds": {
+      "aggressive": 0.72,
+      "balanced": 0.58,
+      "conservative": 0.48
+    },
+    "thresholds": {
+      "aggressive": 0.76,
+      "balanced": 0.68,
+      "conservative": 0.28
+    },
+    "metrics_by_mode": {
+      "aggressive": {
+        "threshold": 0.76,
+        "accuracy": 0.9745370370370371,
+        "precision": 0.983435047951177,
+        "recall": 0.9510961214165261,
+        "specificity": 0.9896626768226333,
+        "f1": 0.96699528504072,
+        "tp": 1128,
+        "fp": 19,
+        "tn": 1819,
+        "fn": 58
+      },
+      "balanced": {
+        "threshold": 0.68,
+        "accuracy": 0.9794973544973545,
+        "precision": 0.9803418803418803,
+        "recall": 0.9671163575042159,
+        "specificity": 0.9874863982589771,
+        "f1": 0.9736842105263157,
+        "tp": 1147,
+        "fp": 23,
+        "tn": 1815,
+        "fn": 39
+      },
+      "conservative": {
+        "threshold": 0.28,
+        "accuracy": 0.9675925925925926,
+        "precision": 0.9338118022328549,
+        "recall": 0.9873524451939292,
+        "specificity": 0.954842219804135,
+        "f1": 0.9598360655737705,
+        "tp": 1171,
+        "fp": 83,
+        "tn": 1755,
+        "fn": 15
+      },
+      "auc": 0.9944946207752379
+    }
+  },
+  "calibration_dataset": {
+    "rows": 3024,
+    "source": "/Users/reese/code/Clarigo/ml/data/processed_data/master_dataset.jsonl",
+    "calibrated_at": "2026-04-08T04:26:33.513Z"
   }
 }
