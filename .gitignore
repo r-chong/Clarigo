@@ -2,3 +2,5 @@ test.py
 predict_video.py
 NEXT_STEPS.md
 notes.txt
+ml/framework_pipeline/vendor/
+ml/framework_pipeline/artifacts/

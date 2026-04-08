@@ -1,12 +1,23 @@
 /**
  * Clarigo Educational Video Classifier - JavaScript Implementation
  * Loads and runs the converted scikit-learn model in the browser
+ *
+ * --- Public API (extension contract) ---
+ * Consumers (e.g. Chrome extension) should rely only on:
+ *   - loadModel(modelPath: string) -> Promise<boolean>
+ *   - predict(title: string, channelName: string) -> { prediction: 0|1, confidence: number, ... }
+ *   - isLoaded: boolean
  */
 
 class ClarigoClassifier {
     constructor() {
         this.model = null;
         this.isLoaded = false;
+        this.defaultThresholds = {
+            aggressive: 0.72,
+            balanced: 0.58,
+            conservative: 0.48
+        };
     }
 
     /**
@@ -35,6 +46,26 @@ class ClarigoClassifier {
             this.isLoaded = false;
             return false;
         }
+    }
+
+    getThresholds() {
+        if (!this.model) return this.defaultThresholds;
+
+        return {
+            ...this.defaultThresholds,
+            ...(this.model.inference?.fallback_thresholds || {}),
+            ...(this.model.inference?.thresholds || {})
+        };
+    }
+
+    resolveThreshold(options = {}) {
+        if (typeof options.threshold === 'number' && Number.isFinite(options.threshold)) {
+            return options.threshold;
+        }
+
+        const thresholds = this.getThresholds();
+        const mode = options.filterMode || this.model?.inference?.default_filter_mode || 'aggressive';
+        return thresholds[mode] ?? thresholds.aggressive;
     }
 
     /**
@@ -186,7 +217,7 @@ class ClarigoClassifier {
      * @param {number[]} features - Feature vector
      * @returns {Object} - Prediction results
      */
-    predictWithLogisticRegression(features) {
+    predictWithLogisticRegression(features, threshold = 0.5) {
         const { coef, intercept } = this.model.model;
         
         // Calculate linear combination: w·x + b
@@ -198,13 +229,14 @@ class ClarigoClassifier {
         const probability = 1 / (1 + Math.exp(-linearCombination));
         
         // Make binary prediction (threshold = 0.5)
-        const prediction = probability >= 0.5 ? 1 : 0;
+        const prediction = probability >= threshold ? 1 : 0;
 
         return {
             prediction,
             probability,
             confidence: prediction === 1 ? probability : (1 - probability),
-            linearCombination
+            linearCombination,
+            threshold
         };
     }
 
@@ -214,26 +246,29 @@ class ClarigoClassifier {
      * @param {string} channelName - Channel name
      * @returns {Object} - Prediction results
      */
-    predict(title, channelName) {
+    predict(title, channelName, options = {}) {
         if (!this.isLoaded) {
             throw new Error('Model not loaded. Call loadModel() first.');
         }
 
-        if (!title || !channelName) {
-            console.warn('Missing title or channel name. Prediction quality may be reduced.');
+        if (!title && !options.suppressWarnings) {
+            console.warn('Missing title. Prediction quality may be reduced.');
         }
 
         // Extract features
         const features = this.extractFeatures(title || '', channelName || '');
+        const threshold = this.resolveThreshold(options);
         
         // Make prediction
-        const result = this.predictWithLogisticRegression(features.combined);
+        const result = this.predictWithLogisticRegression(features.combined, threshold);
 
         return {
             prediction: result.prediction,
             label: result.prediction === 1 ? 'Educational' : 'Non-Educational',
             probability: result.probability,
             confidence: result.confidence,
+            threshold,
+            filterMode: options.filterMode || this.model?.inference?.default_filter_mode || 'aggressive',
             probabilities: {
                 educational: result.probability,
                 nonEducational: 1 - result.probability
@@ -267,10 +302,12 @@ class ClarigoClassifier {
         
         return {
             ...this.model.model_info,
+            schemaVersion: this.model.schema_version || 1,
             vocabularySize: Object.keys(this.model.preprocessing.tfidf.vocabulary).length,
             totalFeatures: this.model.model.coef[0].length,
             numericalFeatures: this.model.preprocessing.numerical_scaler.mean.length,
-            educationalKeywords: this.model.preprocessing.educational_keywords.length
+            educationalKeywords: this.model.preprocessing.educational_keywords.length,
+            thresholds: this.getThresholds()
         };
     }
 }
