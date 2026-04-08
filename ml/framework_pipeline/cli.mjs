@@ -158,6 +158,14 @@ function writeJson(outputPath, payload) {
   return absolutePath;
 }
 
+function normalizeSchemaVersion(schemaVersion) {
+  const parsedVersion = Number(schemaVersion);
+  if (Number.isFinite(parsedVersion) && parsedVersion >= MODEL_SCHEMA_VERSION) {
+    return parsedVersion;
+  }
+  return MODEL_SCHEMA_VERSION;
+}
+
 async function trainCommand(options) {
   const framework = await loadFramework(Boolean(options['force-build']));
   const { Tensor, Parameter, Adam } = framework;
@@ -256,7 +264,7 @@ function migrateThresholds(currentModel) {
   const thresholds = currentModel.inference?.thresholds || DEFAULT_RUNTIME_THRESHOLDS;
   return {
     ...currentModel,
-    schema_version: currentModel.schema_version || MODEL_SCHEMA_VERSION,
+    schema_version: normalizeSchemaVersion(currentModel.schema_version),
     preprocessing: {
       ...currentModel.preprocessing,
       numerical_feature_names: currentModel.preprocessing?.numerical_feature_names || NUMERICAL_FEATURE_NAMES,
@@ -301,7 +309,7 @@ function calibrateExistingBrowserModel(options) {
 
   const updatedModel = {
     ...classifier.model,
-    schema_version: classifier.model.schema_version || MODEL_SCHEMA_VERSION,
+    schema_version: normalizeSchemaVersion(classifier.model.schema_version),
     preprocessing: {
       ...classifier.model.preprocessing,
       numerical_feature_names: classifier.model.preprocessing?.numerical_feature_names || NUMERICAL_FEATURE_NAMES,
