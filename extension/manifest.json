@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "matches": ["*://www.youtube.com/*"],
-      "js": ["model/clarigo_classifier.js", "youtube-dom.js", "content.js"],
+      "js": ["settings.js", "model/clarigo_classifier.js", "youtube-dom.js", "content.js"],
       "css": ["content.css"]
     }
   ],

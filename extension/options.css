@@ -1,0 +1,230 @@
+:root {
+  --bg: radial-gradient(circle at top, rgba(198, 225, 204, 0.42), transparent 34%),
+        linear-gradient(180deg, #f6f1e7 0%, #ece5d7 100%);
+  --surface: rgba(255, 253, 247, 0.84);
+  --surface-strong: rgba(255, 251, 243, 0.96);
+  --text: #172015;
+  --muted: #5c6659;
+  --accent: #1d6a43;
+  --accent-strong: #12442b;
+  --border: rgba(23, 32, 21, 0.12);
+  --shadow: 0 24px 50px rgba(24, 34, 25, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background: var(--bg);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.settings-shell {
+  width: min(780px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 40px 0 56px;
+}
+
+.hero-card,
+.settings-card {
+  margin-bottom: 18px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.hero-card h1 {
+  margin: 0;
+  font-size: clamp(34px, 6vw, 54px);
+  line-height: 0.98;
+  max-width: 10ch;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.hero-copy,
+.section-copy,
+.settings-row p,
+.meta-card p {
+  margin: 12px 0 0;
+  max-width: 62ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.settings-row,
+.meta-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.settings-card h2 {
+  margin: 0;
+  font-size: 22px;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-ui {
+  width: 68px;
+  height: 38px;
+  border-radius: 999px;
+  background: rgba(23, 32, 21, 0.16);
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.switch-ui::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(24, 34, 25, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.switch input:checked + .switch-ui {
+  background: var(--accent);
+}
+
+.switch input:checked + .switch-ui::after {
+  transform: translateX(30px);
+}
+
+.mode-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.mode-card {
+  display: block;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  text-align: left;
+  background: var(--surface-strong);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.mode-card:hover {
+  transform: translateY(-1px);
+}
+
+.mode-card[data-selected="true"] {
+  border-color: rgba(29, 106, 67, 0.42);
+  background: rgba(29, 106, 67, 0.12);
+}
+
+.mode-title {
+  display: block;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.mode-copy {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.signal-list {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.ghost-button,
+.primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font: inherit;
+  text-decoration: none;
+}
+
+.ghost-button {
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.primary-link {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .settings-shell {
+    width: min(100% - 20px, 780px);
+    padding: 20px 0 32px;
+  }
+
+  .hero-card,
+  .settings-card {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .settings-row,
+  .meta-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -1,1 +1,77 @@
-<!-- Options -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clarigo Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="settings-shell">
+    <section class="hero-card">
+      <p class="eyebrow">Clarigo Settings</p>
+      <h1>Study-mode YouTube, tuned locally.</h1>
+      <p class="hero-copy">Clarigo scores titles and channel names in the browser, then hides sponsored noise, Shorts, and videos that do not clear your educational threshold.</p>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-row">
+        <div>
+          <h2>Enable filter</h2>
+          <p>Turn Clarigo on or off without losing your saved mode.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="enabled-toggle" checked>
+          <span class="switch-ui" aria-hidden="true"></span>
+        </label>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <h2>Filtering style</h2>
+      <p class="section-copy">Aggressive mode is the default because this extension is meant to behave like deliberate study armor, not a gentle recommender tweak.</p>
+      <div class="mode-stack" id="mode-stack">
+        <button type="button" class="mode-card" data-filter-mode="aggressive">
+          <span class="mode-title">Aggressive study mode</span>
+          <span class="mode-copy">Hide borderline educational videos, Shorts, sponsored cards, and noisy shelves.</span>
+        </button>
+        <button type="button" class="mode-card" data-filter-mode="balanced">
+          <span class="mode-title">Balanced</span>
+          <span class="mode-copy">Keep stronger educational content visible while still cutting most distractions.</span>
+        </button>
+        <button type="button" class="mode-card" data-filter-mode="conservative">
+          <span class="mode-title">Conservative</span>
+          <span class="mode-copy">Only hide stronger non-educational candidates. Use this if too much study content disappears.</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="settings-card meta-card">
+      <div>
+        <h2>Debug logging</h2>
+        <p>Log scores, thresholds, and suppression reasons in the page console.</p>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="debug-toggle">
+        <span>Enable debug mode</span>
+      </label>
+    </section>
+
+    <section class="settings-card">
+      <h2>What Clarigo hides before the model</h2>
+      <ul class="signal-list">
+        <li>Sponsored cards and promoted YouTube units</li>
+        <li>Shorts shelves and other noisy recommendation containers</li>
+        <li>Videos that fail the current educational threshold</li>
+      </ul>
+      <div class="button-row">
+        <button type="button" id="reset-defaults" class="ghost-button">Reset defaults</button>
+        <a href="https://www.youtube.com" target="_blank" rel="noreferrer" class="primary-link">Open YouTube</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="settings.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

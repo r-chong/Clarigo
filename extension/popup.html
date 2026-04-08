@@ -1,30 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <style>
-    body {
-      width: 200px;
-      padding: 12px 16px;
-      font-family: system-ui, sans-serif;
-      font-size: 14px;
-      margin: 0;
-    }
-    .row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    #status {
-      color: #666;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clarigo</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="row">
-    <input type="checkbox" id="toggle" checked>
-    <span id="status">Clarigo is on</span>
-  </div>
+  <main class="popup-shell">
+    <section class="hero">
+      <p class="eyebrow">Local Study Filter</p>
+      <h1>Clarigo</h1>
+      <p class="hero-copy">Hide sponsored clutter, Shorts, and low-signal recommendations before they hijack the session.</p>
+    </section>
+
+    <section class="control-card">
+      <label class="toggle-row" for="toggle">
+        <span>
+          <strong id="status-title">Filtering on</strong>
+          <span id="status" class="status-copy">Aggressive study mode is active.</span>
+        </span>
+        <span class="switch">
+          <input type="checkbox" id="toggle" checked>
+          <span class="switch-ui" aria-hidden="true"></span>
+        </span>
+      </label>
+    </section>
+
+    <section class="control-card">
+      <p class="section-label">Filter mode</p>
+      <div class="mode-grid" id="mode-grid">
+        <button type="button" class="mode-button" data-filter-mode="aggressive">Aggressive</button>
+        <button type="button" class="mode-button" data-filter-mode="balanced">Balanced</button>
+        <button type="button" class="mode-button" data-filter-mode="conservative">Conservative</button>
+      </div>
+      <p class="mode-description" id="mode-description"></p>
+    </section>
+
+    <div class="footer-row">
+      <button type="button" id="open-options" class="ghost-button">Open settings</button>
+      <span class="footer-note">Runs locally in the browser</span>
+    </div>
+  </main>
+
+  <script src="settings.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

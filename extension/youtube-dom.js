@@ -33,6 +33,27 @@
         }
     }
 
+    function getWatchHref(videoElement) {
+        const anchor = getWatchAnchor(videoElement);
+        return anchor ? (anchor.href || anchor.getAttribute('href') || '') : '';
+    }
+
+    function getVideoKind(videoElement) {
+        const href = getWatchHref(videoElement);
+        if (!href) return 'unknown';
+
+        try {
+            const url = new URL(href, window.location.origin);
+            if (url.pathname.startsWith('/shorts/')) return 'shorts';
+            if (url.pathname.startsWith('/live/')) return 'live';
+            if (url.pathname === '/watch') return 'watch';
+        } catch {
+            return 'unknown';
+        }
+
+        return 'unknown';
+    }
+
     function getChannelInfo(videoElement) {
         if (!videoElement) return { name: '', url: '' };
 
@@ -117,6 +138,51 @@
         return Boolean(getWatchAnchor(videoElement));
     }
 
+    function collectBadgeText(videoElement) {
+        if (!videoElement) return '';
+
+        const badgeSelectors = [
+            '#badges',
+            'ytd-badge-supported-renderer',
+            '#metadata-line',
+            '[overlay-style="SHORTS"]',
+            'ytm-promoted-sparkles-text-search-renderer',
+            '[aria-label*="Sponsored"]'
+        ];
+
+        return badgeSelectors
+            .flatMap((selector) => Array.from(videoElement.querySelectorAll(selector)))
+            .map((element) => (element.textContent || element.getAttribute('aria-label') || '').trim())
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+    }
+
+    function isSponsoredCard(videoElement) {
+        if (!videoElement) return false;
+        if (videoElement.closest('ytd-ad-slot-renderer, ytd-display-ad-renderer, ytd-banner-promo-renderer, ytd-promoted-sparkles-web-renderer')) {
+            return true;
+        }
+
+        const badgeText = collectBadgeText(videoElement);
+        return (
+            badgeText.includes('sponsored') ||
+            badgeText.includes('paid promotion') ||
+            badgeText.includes('promoted')
+        );
+    }
+
+    function getCardSuppressionReason(videoElement) {
+        if (!videoElement) return '';
+        if (!getWatchAnchor(videoElement)) return 'non-video';
+        if (isSponsoredCard(videoElement)) return 'sponsored';
+
+        const videoKind = getVideoKind(videoElement);
+        if (videoKind === 'shorts') return 'shorts';
+
+        return '';
+    }
+
     function getVideoTitleFromWatchAnchor(videoElement) {
         const a = getWatchAnchor(videoElement);
         if (!a) return '';
@@ -129,7 +195,11 @@
         getVideoTitle,
         normalizeYouTubeTitle,
         getWatchAnchor,
+        getWatchHref,
+        getVideoKind,
         isLikelyVideoCard,
+        isSponsoredCard,
+        getCardSuppressionReason,
         getVideoTitleFromWatchAnchor
     };
 })();

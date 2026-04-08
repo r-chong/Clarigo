@@ -1,53 +1,109 @@
 /**
- * Clarigo content script: load model, run predictions, apply hide policy.
- * Depends on: model/clarigo_classifier.js (ClarigoClassifier), youtube-dom.js (ClarigoDOM).
+ * Clarigo content script: load model, run predictions, and suppress feed noise.
+ * Depends on: settings.js, model/clarigo_classifier.js, youtube-dom.js
  */
-const DEBUG = false;
-const log = (...args) => { if (DEBUG) console.log(...args); };
+const state = {
+    modelLoaded: false,
+    settings: (globalThis.ClarigoSettings && globalThis.ClarigoSettings.normalizeSettings())
+        || { enabled: true, filterMode: 'aggressive', debug: false }
+};
+
+const classifier = new ClarigoClassifier();
+const VIDEO_SELECTORS = [
+    'ytd-rich-item-renderer:not(.cg-processed)',
+    'ytd-video-renderer:not(.cg-processed)',
+    'ytd-grid-video-renderer:not(.cg-processed)',
+    'ytd-compact-video-renderer:not(.cg-processed)'
+];
+const FEED_NOISE_SELECTORS = [
+    'ytd-rich-shelf-renderer',
+    'ytd-reel-shelf-renderer',
+    'ytd-display-ad-renderer',
+    'ytd-ad-slot-renderer',
+    'ytd-banner-promo-renderer',
+    'ytd-promoted-sparkles-web-renderer',
+    'ytd-search-pyv-renderer',
+    'ytd-primetime-promo-renderer'
+];
+
+const log = (...args) => { if (state.settings.debug) console.log(...args); };
 const warn = (...args) => console.warn(...args);
 const error = (...args) => console.error(...args);
 
-const classifier = new ClarigoClassifier();
-let modelLoaded = false;
-let clarigoEnabled = true;
+function hideElement(element, reason) {
+    if (!element) return;
+    element.classList.add('cg-hide');
+    if (reason) {
+        element.dataset.cgReason = reason;
+    }
+}
+
+function unhideElement(element) {
+    if (!element) return;
+    element.classList.remove('cg-hide');
+    delete element.dataset.cgReason;
+}
+
+function unhideAllManagedElements() {
+    document.querySelectorAll('.cg-hide').forEach((element) => unhideElement(element));
+}
+
+function resetProcessedState() {
+    document.querySelectorAll('.cg-processed').forEach((element) => element.classList.remove('cg-processed'));
+}
+
+function suppressFeedNoise() {
+    document.querySelectorAll(FEED_NOISE_SELECTORS.join(',')).forEach((element) => {
+        if (state.settings.enabled) {
+            hideElement(element, 'feed-noise');
+        } else {
+            unhideElement(element);
+        }
+    });
+}
 
 async function loadModel() {
-    if (modelLoaded) return true;
+    if (state.modelLoaded) return true;
 
     try {
         const modelPath = chrome.runtime.getURL('model/clarigo_model.json');
         const success = await classifier.loadModel(modelPath);
-        const wasLoaded = modelLoaded;
-        modelLoaded = success && classifier.isLoaded;
+        const wasLoaded = state.modelLoaded;
+        state.modelLoaded = success && classifier.isLoaded;
 
-        if (modelLoaded) {
-            log('Clarigo: Model loaded successfully');
-            if (!wasLoaded) {
-                log('Clarigo: Reprocessing videos now that model is loaded...');
-                setTimeout(() => processVideos(), 500);
-            }
-        } else {
-            error('Clarigo: Failed to load model');
+        if (state.modelLoaded && !wasLoaded) {
+            log('Clarigo: Model loaded, reprocessing feed.');
+            setTimeout(processFeed, 300);
         }
-        return modelLoaded;
+
+        return state.modelLoaded;
     } catch (err) {
         error('Clarigo: Error loading model:', err);
-        modelLoaded = false;
+        state.modelLoaded = false;
         return false;
     }
 }
 
-/**
- * Policy: hide non-educational videos (prediction === 0).
- */
+function shouldHideUnknownCard(title) {
+    return !title && state.settings.filterMode === 'aggressive';
+}
+
 function shouldHideVideo({ title, channelName }) {
-    if (!modelLoaded || !classifier.isLoaded) return false;
-    if (!title) return false;
+    if (!state.modelLoaded || !classifier.isLoaded) return false;
+    if (!title) return shouldHideUnknownCard(title);
 
     try {
-        const prediction = classifier.predict(title, channelName || '');
+        const prediction = classifier.predict(title, channelName || '', {
+            filterMode: state.settings.filterMode
+        });
         const hide = prediction.prediction === 0;
-        if (hide) log(`Clarigo: Hiding non-educational - "${title}" (confidence: ${(prediction.confidence * 100).toFixed(1)}%)`);
+        log('Clarigo: scored video', {
+            title,
+            channelName,
+            probability: prediction.probability,
+            threshold: prediction.threshold,
+            hide
+        });
         return hide;
     } catch (err) {
         error('Clarigo: Error making prediction:', err);
@@ -55,51 +111,65 @@ function shouldHideVideo({ title, channelName }) {
     }
 }
 
-function processVideos() {
-    const videoSelectors = [
-        'ytd-rich-item-renderer:not(.cg-processed)',
-        'ytd-video-renderer:not(.cg-processed)',
-        'ytd-grid-video-renderer:not(.cg-processed)'
-    ];
-
-    let allVideoElements = [];
-    videoSelectors.forEach((selector) => {
-        const elements = document.querySelectorAll(selector);
-        allVideoElements = allVideoElements.concat(Array.from(elements));
+function collectVideoElements() {
+    const combined = [];
+    VIDEO_SELECTORS.forEach((selector) => {
+        combined.push(...document.querySelectorAll(selector));
     });
+    return Array.from(new Set(combined));
+}
 
-    if (allVideoElements.length === 0) {
-        log('Clarigo: No unprocessed video elements found');
-        return;
-    }
+function processVideos() {
+    const {
+        getChannelInfo,
+        getVideoTitle,
+        getVideoTitleFromWatchAnchor,
+        getCardSuppressionReason,
+        isLikelyVideoCard
+    } = window.ClarigoDOM;
 
-    log(`Clarigo: Processing ${allVideoElements.length} new videos...`);
+    const allVideoElements = collectVideoElements();
+    if (allVideoElements.length === 0) return;
 
     let hiddenCount = 0;
     let processedCount = 0;
-    const { getChannelInfo, getVideoTitle, getVideoTitleFromWatchAnchor, isLikelyVideoCard } = window.ClarigoDOM;
 
     allVideoElements.forEach((videoElement) => {
         if (!isLikelyVideoCard(videoElement)) return;
 
         videoElement.classList.add('cg-processed');
-        processedCount++;
+        processedCount += 1;
+
+        const suppressionReason = getCardSuppressionReason(videoElement);
+        if (state.settings.enabled && suppressionReason) {
+            hideElement(videoElement, suppressionReason);
+            hiddenCount += 1;
+            return;
+        }
 
         const title = getVideoTitle(videoElement) || getVideoTitleFromWatchAnchor(videoElement);
         const channel = getChannelInfo(videoElement);
 
-        if (!title) log('Clarigo: Could not extract title from video element');
-
-        if (clarigoEnabled && shouldHideVideo({ title, channelName: channel.name })) {
-            videoElement.classList.add('cg-hide');
-            hiddenCount++;
-            log(`Clarigo: Hiding video - "${title || '(no title)'}"`, { channelName: channel.name, channelUrl: channel.url });
+        if (state.settings.enabled && shouldHideVideo({ title, channelName: channel.name })) {
+            hideElement(videoElement, `model-${state.settings.filterMode}`);
+            hiddenCount += 1;
         } else {
-            log(`Clarigo: Showing video - "${title}" by "${channel.name}"`);
+            unhideElement(videoElement);
         }
     });
 
-    log(`Clarigo: Processed ${processedCount} videos, hidden ${hiddenCount}`);
+    log(`Clarigo: processed ${processedCount} candidates, hid ${hiddenCount}`);
+}
+
+function processFeed() {
+    suppressFeedNoise();
+
+    if (!state.settings.enabled) {
+        unhideAllManagedElements();
+        return;
+    }
+
+    processVideos();
 }
 
 const debounce = (fn, wait = 300) => {
@@ -109,51 +179,36 @@ const debounce = (fn, wait = 300) => {
         timeout = setTimeout(() => fn(...args), wait);
     };
 };
-const debouncedProcessVideos = debounce(processVideos, 300);
 
-function unhideAllVideos() {
-    document.querySelectorAll('.cg-hide').forEach((el) => el.classList.remove('cg-hide'));
-}
+const debouncedProcessFeed = debounce(processFeed, 300);
 
-function resetProcessedState() {
-    document.querySelectorAll('.cg-processed').forEach((el) => el.classList.remove('cg-processed'));
-}
-
-function applyEnabledState(enabled) {
-    clarigoEnabled = enabled;
-    if (enabled) {
-        resetProcessedState();
-        processVideos();
+function applySettings(nextSettings) {
+    state.settings = nextSettings;
+    resetProcessedState();
+    if (nextSettings.enabled) {
+        processFeed();
     } else {
-        unhideAllVideos();
+        unhideAllManagedElements();
     }
 }
-
-chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === 'enabledChanged') {
-        applyEnabledState(msg.enabled !== false);
-    }
-});
 
 async function initializeClarigo() {
     log('Clarigo: Initializing...', window.location.href);
 
-    const data = await new Promise((resolve) => chrome.storage.local.get('enabled', resolve));
-    clarigoEnabled = data.enabled !== false;
-    log('Clarigo: Enabled =', clarigoEnabled);
+    if (globalThis.ClarigoSettings) {
+        state.settings = await globalThis.ClarigoSettings.loadSettings();
+    }
 
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName !== 'local' || !changes.enabled) return;
-        applyEnabledState(changes.enabled.newValue !== false);
+    chrome.storage.onChanged.addListener(async (changes, areaName) => {
+        if (areaName !== 'local') return;
+        if (!globalThis.ClarigoSettings || !globalThis.ClarigoSettings.relevantStorageChange(changes)) return;
+        const nextSettings = await globalThis.ClarigoSettings.loadSettings();
+        applySettings(nextSettings);
     });
 
     await loadModel();
 
-    setTimeout(() => {
-        if (modelLoaded) log('Clarigo: Processing initial videos');
-        else log('Clarigo: Model still loading, will process when ready');
-        processVideos();
-    }, 2000);
+    setTimeout(processFeed, 1200);
 
     const observer = new MutationObserver((mutations) => {
         let shouldProcess = false;
@@ -161,51 +216,39 @@ async function initializeClarigo() {
             if (mutation.type !== 'childList' || mutation.addedNodes.length === 0) continue;
             for (const node of mutation.addedNodes) {
                 if (node.nodeType !== Node.ELEMENT_NODE) continue;
-                const hasVideos =
-                    (node.matches && (
-                        node.matches('ytd-rich-item-renderer') ||
-                        node.matches('ytd-video-renderer') ||
-                        node.matches('ytd-grid-video-renderer') ||
-                        node.querySelector('ytd-rich-item-renderer') ||
-                        node.querySelector('ytd-video-renderer') ||
-                        node.querySelector('ytd-grid-video-renderer')
-                    ));
-                if (hasVideos) {
+                if (
+                    (node.matches && node.matches(`${VIDEO_SELECTORS.map((selector) => selector.replace(':not(.cg-processed)', '')).join(', ')}, ${FEED_NOISE_SELECTORS.join(', ')}`)) ||
+                    node.querySelector?.(`${VIDEO_SELECTORS.map((selector) => selector.replace(':not(.cg-processed)', '')).join(', ')}, ${FEED_NOISE_SELECTORS.join(', ')}`)
+                ) {
                     shouldProcess = true;
                     break;
                 }
             }
             if (shouldProcess) break;
         }
-        if (shouldProcess) {
-            log('Clarigo: New videos detected, processing...');
-            debouncedProcessVideos();
-        }
+        if (shouldProcess) debouncedProcessFeed();
     });
 
     const targetNode = document.querySelector('ytd-app') || document.body;
     observer.observe(targetNode, { childList: true, subtree: true });
 
-    log('Clarigo: MutationObserver active');
-    if (modelLoaded) log('Clarigo: Model loaded - non-educational videos will be hidden');
-    else log('Clarigo: Model not loaded - all videos will be shown');
-}
+    let lastUrl = location.href;
+    const titleEl = document.querySelector('title');
+    const navObserver = new MutationObserver(() => {
+        const currentUrl = location.href;
+        if (currentUrl !== lastUrl) {
+            lastUrl = currentUrl;
+            resetProcessedState();
+            setTimeout(processFeed, 700);
+        }
+    });
 
-let lastUrl = location.href;
-const titleEl = document.querySelector('title');
-const navObserver = new MutationObserver(() => {
-    const currentUrl = location.href;
-    if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl;
-        log('Clarigo: Page navigation detected, re-initializing...');
-        setTimeout(processVideos, 1000);
+    if (titleEl) {
+        navObserver.observe(titleEl, { childList: true, subtree: true });
+    } else {
+        warn('Clarigo: <title> not found, falling back to <head> navigation observer.');
+        navObserver.observe(document.head, { childList: true, subtree: true });
     }
-});
-if (titleEl) {
-    navObserver.observe(titleEl, { childList: true, subtree: true });
-} else {
-    warn('Clarigo: <title> not found, using <head> for navigation observer.');
-    navObserver.observe(document.head, { childList: true, subtree: true });
 }
 
 if (document.readyState === 'loading') {
