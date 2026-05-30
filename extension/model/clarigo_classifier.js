@@ -75,6 +75,24 @@ class ClarigoClassifier {
     }
 
     /**
+     * Check whether a token is an English stop word, using the same set
+     * scikit-learn used at training time (shipped in the model JSON). The set
+     * is built once and cached.
+     * @param {string} token - Lowercased token
+     * @returns {boolean}
+     */
+    _isStopWord(token) {
+        if (!this._stopWordSet) {
+            const stopWords = (this.model
+                && this.model.preprocessing
+                && this.model.preprocessing.tfidf
+                && this.model.preprocessing.tfidf.stop_words) || [];
+            this._stopWordSet = new Set(stopWords);
+        }
+        return this._stopWordSet.has(token);
+    }
+
+    /**
      * Create n-grams from text
      * @param {string[]} tokens - Array of words
      * @param {number} n - N-gram size (1 for unigrams, 2 for bigrams)
@@ -101,8 +119,18 @@ class ClarigoClassifier {
         }
 
         const { vocabulary, idf_values, ngram_range } = this.model.preprocessing.tfidf;
-        const tokens = text.split(' ').filter(token => token.length > 0);
-        
+
+        // Replicate scikit-learn's CountVectorizer order exactly:
+        //   1. tokenize, keeping only tokens that match token_pattern
+        //      (\b[a-zA-Z][a-zA-Z0-9]*\b -> must start with a letter), then
+        //   2. drop English stop words, then
+        //   3. build n-grams from what remains.
+        // Doing stop-word removal before n-grams lets a bigram span a removed
+        // word, which is what the model was trained on.
+        const tokens = text
+            .split(' ')
+            .filter(token => /^[a-zA-Z][a-zA-Z0-9]*$/.test(token) && !this._isStopWord(token));
+
         // Create term frequency map
         const termFreq = {};
         
@@ -116,15 +144,29 @@ class ClarigoClassifier {
             });
         }
 
-        // Convert to TF-IDF vector
+        // Convert to TF-IDF vector, matching scikit-learn's TfidfVectorizer
+        // defaults: tf is the RAW term count (not divided by document length),
+        // weighted by idf, then the whole row is L2-normalized (norm='l2').
+        // Earlier versions divided by tokens.length and skipped L2 norm, which
+        // produced a differently-scaled vector and caused train/serve skew.
         const tfidfVector = new Array(idf_values.length).fill(0);
-        
+
         for (const [term, freq] of Object.entries(termFreq)) {
             if (vocabulary.hasOwnProperty(term)) {
                 const index = vocabulary[term];
-                const tf = freq / tokens.length; // Term frequency
-                const idf = idf_values[index];   // Inverse document frequency
-                tfidfVector[index] = tf * idf;
+                tfidfVector[index] = freq * idf_values[index];
+            }
+        }
+
+        // L2 normalization
+        let l2Norm = 0;
+        for (const value of tfidfVector) {
+            l2Norm += value * value;
+        }
+        l2Norm = Math.sqrt(l2Norm);
+        if (l2Norm > 0) {
+            for (let i = 0; i < tfidfVector.length; i++) {
+                tfidfVector[i] /= l2Norm;
             }
         }
 
@@ -161,13 +203,22 @@ class ClarigoClassifier {
         // Text features (TF-IDF)
         const textFeatures = this.textToTfIdf(combinedText);
 
+        // Educational keywords are counted per field then summed, matching the
+        // Python training code (edu_keywords_title + edu_keywords_channel). A
+        // keyword present in BOTH the title and channel therefore counts twice.
+        // Counting on the combined string instead would under-count and create
+        // train/serve skew, so do NOT collapse this back to a single pass.
+        const eduKeywordsTotal =
+            this.countEducationalKeywords(titleClean) +
+            this.countEducationalKeywords(channelClean);
+
         // Numerical features
         const numericalFeatures = [
             titleClean.split(' ').filter(w => w.length > 0).length,  // title_word_count
             channelClean.split(' ').filter(w => w.length > 0).length, // channel_word_count
             titleClean.length,                                        // title_char_count
             channelClean.length,                                      // channel_char_count
-            this.countEducationalKeywords(combinedText)               // edu_keywords_total
+            eduKeywordsTotal                                          // edu_keywords_total
         ];
 
         // Normalize numerical features
@@ -182,7 +233,7 @@ class ClarigoClassifier {
                 channelClean,
                 combinedText,
                 rawNumerical: numericalFeatures,
-                eduKeywords: this.countEducationalKeywords(combinedText)
+                eduKeywords: eduKeywordsTotal
             }
         };
     }
