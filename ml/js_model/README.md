@@ -2,17 +2,52 @@
 
 Convert and run your trained scikit-learn model in the browser without TensorFlow.js!
 
+## End-to-End Workflow (retrain → ship)
+
+Run all commands from the repo root with the project virtualenv active. After
+retraining the model in `ml/notebooks/educational_video_classification.ipynb`
+(which writes `ml/trained_models/educational_video_classifier.joblib`):
+
+```bash
+# 1. Export the trained pipeline to browser-ready JSON (ml/js_model/clarigo_model.json)
+python ml/scripts/model_to_js_converter.py
+
+# 2. Verify the JS classifier matches scikit-learn exactly (REQUIRED before shipping)
+python ml/scripts/parity_test.py
+
+# 3. Copy model + classifier into the extension bundle (extension/model/)
+python ml/scripts/copy_model_to_extension.py
+```
+
+The parity test (step 2) feeds identical inputs through scikit-learn and the
+shipped `clarigo_classifier.js` (via Node) and fails if predicted probabilities
+diverge. Always keep it green — a failure means the browser is no longer running
+the model you trained.
+
+> **Version pinning matters.** The committed `.joblib` was serialized with the
+> exact library versions in `requirements.txt` (notably `scikit-learn==1.7.1`).
+> Loading it under a different scikit-learn version raises
+> `InconsistentVersionWarning` and can silently change results. Retrain if you
+> intentionally upgrade.
+
+### Source of truth
+
+`ml/js_model/` is canonical: `model_to_js_converter.py` regenerates
+`clarigo_model.json` there, and `clarigo_classifier.js` is hand-maintained
+there. `extension/model/` is a generated copy — never edit it directly; edit in
+`ml/js_model/` and re-run the copy script.
+
 ## 🚀 Quick Start
 
 ### Step 1: Convert Your Model
+Run from the repo root (uses the trained `.joblib` in `ml/trained_models/`):
 ```bash
-cd model
-python model_to_js_converter.py
+python ml/scripts/model_to_js_converter.py
 ```
 
 This creates:
-- `js_model/clarigo_model.json` - Your converted model (weights, vocabulary, parameters)
-- `js_model/conversion_summary.json` - Conversion details
+- `ml/js_model/clarigo_model.json` - Your converted model (weights, vocabulary, parameters)
+- `ml/js_model/conversion_summary.json` - Conversion details
 
 ### Step 2: Use in JavaScript
 ```javascript
@@ -91,10 +126,11 @@ Open `test_model.html` in your browser to verify everything works correctly.
 
 ## Chrome Extension Build
 
-Before loading the extension, copy the classifier and model into the extension bundle:
+Before loading the extension, copy the classifier and model into the extension bundle (from repo root):
 
-- **Node:** `node copy_model.js` (from repo root)
-- **Python:** `python _copy_model.py` (from repo root)
+```bash
+python ml/scripts/copy_model_to_extension.py
+```
 
 This copies `clarigo_model.json` and `clarigo_classifier.js` from `ml/js_model/` to `extension/model/`.
 

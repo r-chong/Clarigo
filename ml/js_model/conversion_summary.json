@@ -1,15 +1,9 @@
 {
   "conversion_successful": true,
-  "output_file": "js_model/clarigo_model.json",
-  "file_size_kb": 389.6,
+  "output_file": "ml\\js_model\\clarigo_model.json",
+  "file_size_kb": 315.8,
   "vocabulary_size": 3687,
   "total_features": 3692,
   "numerical_features": 5,
-  "model_accuracy": 0.9339,
-  "next_steps": [
-    "1. Use the clarigo_model.json file in your JavaScript application",
-    "2. Implement the preprocessing functions in JavaScript",
-    "3. Load the model and make predictions in the browser",
-    "4. Test with sample video data"
-  ]
+  "model_accuracy": 0.9338842975206612
 }
