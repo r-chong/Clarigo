@@ -2,3 +2,14 @@ test.py
 predict_video.py
 NEXT_STEPS.md
 notes.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets / local config
+.env
+.env.local
+
+# Review queue is generated, machine-specific working data
+ml/data/review_queue/
