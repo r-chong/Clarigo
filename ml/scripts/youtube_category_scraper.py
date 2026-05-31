@@ -53,6 +53,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+import lang_filter
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = REPO_ROOT / "ml" / "data" / "raw_data"
 LABELING_DIR = REPO_ROOT / "ml" / "labeling"
@@ -100,7 +102,8 @@ def category_hint(category_id: int, edu: set[int], non_edu: set[int]):
 
 
 def build_search_url(api_key: str, category_id: int, region: str, order: str,
-                     query: str, page_token: str | None) -> str:
+                     query: str, page_token: str | None,
+                     relevance_language: str = "en") -> str:
     params = {
         "part": "snippet",
         "type": "video",
@@ -111,6 +114,9 @@ def build_search_url(api_key: str, category_id: int, region: str, order: str,
         "maxResults": "50",
         "key": api_key,
     }
+    # Bias results toward a language (soft, not a hard filter). Empty disables it.
+    if relevance_language:
+        params["relevanceLanguage"] = relevance_language
     if page_token:
         params["pageToken"] = page_token
     return f"{SEARCH_URL}?{urllib.parse.urlencode(params)}"
@@ -162,6 +168,8 @@ def to_record(item: dict, queried_category: int, hint, scraped_at: str) -> dict:
         "viewCount": int(stats["viewCount"]) if stats.get("viewCount") else None,
         "likeCount": int(stats["likeCount"]) if stats.get("likeCount") else None,
         "publishedAt": snippet.get("publishedAt", ""),
+        "defaultLanguage": snippet.get("defaultLanguage", ""),
+        "defaultAudioLanguage": snippet.get("defaultAudioLanguage", ""),
         "category_label_hint": hint,
         "source": "youtube_api_search",
         "scraped_at": scraped_at,
@@ -169,7 +177,8 @@ def to_record(item: dict, queried_category: int, hint, scraped_at: str) -> dict:
 
 
 def search_video_ids(api_key: str, category_id: int, region: str, order: str,
-                     query: str, max_results: int, dry_run: bool) -> list[str]:
+                     query: str, max_results: int, dry_run: bool,
+                     relevance_language: str = "en") -> list[str]:
     """Collect up to max_results video IDs for one (category, query) via search.list.
 
     Note: the Search API caps total results per query at ~500 regardless of
@@ -178,7 +187,8 @@ def search_video_ids(api_key: str, category_id: int, region: str, order: str,
     ids: list[str] = []
     page_token: str | None = None
     while len(ids) < max_results:
-        url = build_search_url(api_key, category_id, region, order, query, page_token)
+        url = build_search_url(api_key, category_id, region, order, query,
+                               page_token, relevance_language)
         if dry_run:
             print(f"[dry-run] SEARCH {url.replace(api_key, '***KEY***')}")
             break
@@ -209,9 +219,21 @@ def hydrate_videos(api_key: str, video_ids: list[str], dry_run: bool) -> list[di
     return items
 
 
+def is_english_record(rec: dict) -> bool:
+    return lang_filter.is_probably_english(
+        rec.get("title", ""),
+        rec.get("channelName", ""),
+        default_language=rec.get("defaultLanguage", ""),
+        default_audio_language=rec.get("defaultAudioLanguage", ""),
+    )
+
+
 def scrape_category(api_key: str, category_id: int, region: str, order: str,
                     queries: list[str], max_per_query: int, edu: set[int],
-                    non_edu: set[int], dry_run: bool) -> list[dict]:
+                    non_edu: set[int], dry_run: bool,
+                    relevance_language: str = "en",
+                    keep_non_english: bool = False) -> tuple[list[dict], int]:
+    """Return (records, dropped_non_english) for one category."""
     hint = category_hint(category_id, edu, non_edu)
     scraped_at = datetime.now(timezone.utc).isoformat()
 
@@ -219,7 +241,7 @@ def scrape_category(api_key: str, category_id: int, region: str, order: str,
     seen_ids: set[str] = set()
     for query in queries:
         ids = search_video_ids(api_key, category_id, region, order, query,
-                               max_per_query, dry_run)
+                               max_per_query, dry_run, relevance_language)
         for vid in ids:
             if vid not in seen_ids:
                 seen_ids.add(vid)
@@ -229,10 +251,14 @@ def scrape_category(api_key: str, category_id: int, region: str, order: str,
 
     if dry_run:
         hydrate_videos(api_key, ["VIDEO_ID_1", "VIDEO_ID_2"], dry_run)
-        return []
+        return [], 0
 
     items = hydrate_videos(api_key, all_ids, dry_run)
-    return [to_record(item, category_id, hint, scraped_at) for item in items]
+    records = [to_record(item, category_id, hint, scraped_at) for item in items]
+    if keep_non_english:
+        return records, 0
+    english = [r for r in records if is_english_record(r)]
+    return english, len(records) - len(english)
 
 
 def load_queries_for(hint, args) -> list[str]:
@@ -292,6 +318,12 @@ def main() -> None:
                              "category hint: education vs non-education seed list.")
     parser.add_argument("--max-per-query", type=int, default=50,
                         help="Max videos per (category, query) page (default 50 = 1 page).")
+    parser.add_argument("--relevance-language", default="en",
+                        help="Bias search toward this language (ISO code; default 'en'). "
+                             "Pass '' to disable. Soft hint, not a hard filter.")
+    parser.add_argument("--keep-non-english", action="store_true",
+                        help="Do NOT drop records that look non-English at intake "
+                             "(default: drop them via lang_filter).")
     parser.add_argument("--out", type=Path, default=None,
                         help="Output JSONL path (default ml/data/raw_data/api_<cats>_<date>.jsonl).")
     parser.add_argument("--edu-categories", default=None,
@@ -321,21 +353,26 @@ def main() -> None:
         out_path = args.out
 
     total_added = 0
+    total_dropped = 0
     for category_id in categories:
         hint = category_hint(category_id, edu, non_edu)
         queries = load_queries_for(hint, args)
-        recs = scrape_category(api_key or "DRYRUN", category_id, args.region,
-                               args.order, queries, args.max_per_query,
-                               edu, non_edu, args.dry_run)
+        recs, dropped = scrape_category(api_key or "DRYRUN", category_id, args.region,
+                                        args.order, queries, args.max_per_query,
+                                        edu, non_edu, args.dry_run,
+                                        args.relevance_language, args.keep_non_english)
         if args.dry_run:
             continue
         added = write_records(recs, out_path)
-        print(f"category {category_id}: {len(queries)} queries, fetched {len(recs)}, "
-              f"added {added} new (hint={hint}) -> {rel(out_path)}")
+        print(f"category {category_id}: {len(queries)} queries, kept {len(recs)} "
+              f"(dropped {dropped} non-English), added {added} new "
+              f"(hint={hint}) -> {rel(out_path)}")
         total_added += added
+        total_dropped += dropped
 
     if not args.dry_run:
-        print(f"\nDone. Added {total_added} new records to {rel(out_path)}")
+        print(f"\nDone. Added {total_added} new records "
+              f"(dropped {total_dropped} non-English) to {rel(out_path)}")
         print("Next: assign labels with")
         print("  python ml/scripts/apply_category_labels.py   (fast, implicit)")
         print("  python ml/scripts/gemini_labeler.py          (LLM, versioned)")

@@ -45,7 +45,7 @@ LABELED_DIR = REPO_ROOT / "ml" / "data" / "labeled_data"
 REVIEW_DIR = REPO_ROOT / "ml" / "data" / "review_queue"
 DEFINITION_PATH = REPO_ROOT / "ml" / "labeling" / "label_definition.md"
 
-DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 DEFAULT_THRESHOLD = 0.7
 DEFAULT_BATCH_SIZE = 20
 

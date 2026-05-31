@@ -29,6 +29,8 @@ from pathlib import Path
 
 import pandas as pd
 
+import lang_filter
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LABELED_DIR = REPO_ROOT / "ml" / "data" / "labeled_data"
 NORMALIZED_DIR = REPO_ROOT / "ml" / "data" / "normalized_broad"
@@ -41,7 +43,7 @@ import labeling_processor  # noqa: E402  (reuse the canonical normalization)
 # broad-v1) supersedes weak category labels for the same videoId.
 DEFAULT_INPUTS = [
     LABELED_DIR / "gemini_labeled.jsonl",
-    LABELED_DIR / "api_category_labeled.jsonl",
+    # LABELED_DIR / "api_category_labeled.jsonl", # I only want to keep the gemini ones!
 ]
 
 KEEP_COLUMNS = [
@@ -88,6 +90,9 @@ def main() -> None:
                              "Default: gemini_labeled.jsonl then api_category_labeled.jsonl.")
     parser.add_argument("--filename", default="master_broad_v1.csv",
                         help="Output CSV filename in ml/data/processed_data/.")
+    parser.add_argument("--keep-non-english", action="store_true",
+                        help="Do NOT drop rows that look non-English "
+                             "(default: drop them via lang_filter, title+channel).")
     args = parser.parse_args()
 
     inputs = args.inputs if args.inputs else DEFAULT_INPUTS
@@ -120,6 +125,19 @@ def main() -> None:
     df = df.drop_duplicates(subset=["videoId"], keep="first").reset_index(drop=True)
     deduped = before - len(df)
 
+    non_english = 0
+    if not args.keep_non_english:
+        before_lang = len(df)
+        mask = df.apply(
+            lambda r: lang_filter.is_probably_english(
+                str(r.get("title", "") or ""),
+                str(r.get("channelName", "") or ""),
+            ),
+            axis=1,
+        )
+        df = df[mask].reset_index(drop=True)
+        non_english = before_lang - len(df)
+
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     csv_path = PROCESSED_DIR / args.filename
     df.to_csv(csv_path, index=False, encoding="utf-8")
@@ -130,7 +148,8 @@ def main() -> None:
             fh.write("\n")
 
     print(f"\nBuilt {rel(csv_path)}")
-    print(f"  rows: {len(df)} (deduped {deduped} cross-source/duplicate videoIds)")
+    print(f"  rows: {len(df)} (deduped {deduped} cross-source/duplicate videoIds, "
+          f"dropped {non_english} non-English)")
     n1 = int((df['label'] == 1).sum())
     n0 = int((df['label'] == 0).sum())
     print(f"  labels: educational(1)={n1}  non-educational(0)={n0}")
