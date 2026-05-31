@@ -93,27 +93,47 @@ python ml/scripts/copy_model_to_extension.py  # sync into extension/model/
 
 ---
 
-### Phase 1 — Scale the Dataset (G1)
+### Phase 1 — Scale the Dataset (G1) — 🚧 IN PROGRESS (scaffolding built; needs API keys to run)
 *Goal: 20k–50k labeled samples without manual grind.*
 
-#### 1a. Strategic scraping (YouTube Data API)
-- [ ] Script metadata collection (title, channel, tags, description) by **Category ID**:
-  - **27 (Education)** → positive-leaning pool
-  - **20 (Gaming)**, **24 (Entertainment)** → negative-leaning pool
-- [ ] Capture richer metadata now (description, tags, duration, view count) even if unused initially — cheap to store, valuable for future features.
-- [ ] Store raw scrapes in the existing `ml/data/raw_data/*.jsonl` format for pipeline compatibility.
+**Decisions locked:** broad "educational" definition · YouTube category scrape as the first source · Gemini for LLM labeling.
 
-#### 1b. LLM auto-labeling
-- [ ] Build a batch labeling script (OpenAI API or similar) that classifies scraped rows as 1/0.
-- [ ] Reuse and refine `ml/data/gpt_labeller_prompt.txt` — **resolve the definition mismatch**: the prompt is STEM-specific while the README says "educational." Pick one definition and apply it consistently. (Note: `ml/data_builder.md` already sketches several scraping/labeling strategies — fold those in here.)
-- [ ] Add **confidence/uncertainty** to the labeling output; route low-confidence items to a human review queue (active learning).
-- [ ] Spot-check a random sample of LLM labels against human labels to estimate label noise.
+#### Design decision: re-labelable by construction
+The label definition is **provisional and expected to change**, so the pipeline separates immutable rich raw data from a versioned label layer:
+- Raw scrapes keep description/tags/stats/`categoryId` (`ml/data/raw_data/`) — never need re-scraping.
+- The definition lives in **`ml/labeling/label_definition.md`** with a `LABEL_VERSION` token.
+- Every label carries provenance: `label_source`, `label_version`, `label_confidence`.
+- Changing the definition = bump `LABEL_VERSION` and re-run the labeler. See **`ml/labeling/README.md`** for the full data flow.
+
+#### 1a. Strategic scraping (YouTube Data API) — ✅ built & running
+- [x] `ml/scripts/youtube_category_scraper.py` — collects by **Category ID** via **seed-query search + videos.list hydration** (mostPopular 404s on edu categories; `videoCategoryId` needs a query term). Stores rich metadata + weak `category_label_hint`. Dependency-free (stdlib), key-ready (`YOUTUBE_API_KEY`), `--dry-run` works without a key.
+- [x] Seed-query lists (`ml/labeling/seed_queries_education.txt` / `seed_queries_general.txt`) — diverse subjects for channel diversity; editable.
+- [x] **First real scrape done:** 2,492 videos (1,500 edu cat 27 / 992 non-edu cat 24) → `ml/data/raw_data/api_27-24_2026-05-31.jsonl`.
+- [ ] Scale up: more categories (28, 20, 23) and deeper paging across days (free quota ~5k videos/day).
+
+#### 1b. Labeling — ✅ built; category labels applied, Gemini pending billing
+- [x] **Fast/implicit:** `ml/scripts/apply_category_labels.py` — ran on the 2,492 scraped videos → `ml/data/labeled_data/api_category_labeled.jsonl` (weak `cat-v1` labels, no LLM cost).
+- [x] **Authoritative (silver):** `ml/scripts/gemini_labeler.py` — Gemini batch labeler under the versioned definition, emits `label`/`confidence`/`reason`, routes low-confidence to a **review queue**, is **resumable**, stamps `label_version`. Verified end-to-end (SDK/key/prompt all work).
+- [ ] **Gemini blocked on billing:** API returns `429 limit: 0` (free tier disabled for the project). Enable billing on the Cloud project (cost < $1 for this batch), then run `gemini_labeler.py`.
+- [ ] **Spot-check** category + Gemini labels vs human judgment to estimate noise.
 
 #### 1c. External dataset blending (optional)
-- [ ] Pull topic-classification datasets from Hugging Face (e.g. AG News, Yahoo Answers) and extract science/education classes to enrich educational vocabulary.
-- [ ] **Caveat:** domain mismatch (news/QA text vs YouTube titles). Blend cautiously and measure whether it actually helps held-out YouTube accuracy.
+- [ ] Pull topic-classification datasets from Hugging Face and extract science/education classes to enrich vocabulary.
+- [ ] **Caveat:** domain mismatch (news/QA vs YouTube titles). Blend behind a measurement, not by default.
 
-**Exit criteria:** 20k+ labeled rows flowing through the existing `preprocessing/` → `dataset_builder.py` pipeline into an expanded master dataset, with a documented label-quality estimate.
+#### 1d. Label-source precedence — ✅ done
+- [x] `ml/scripts/build_broad_dataset.py` concatenates label sources **highest-precedence-first (gemini > category)** and de-dupes by `videoId` keeping the first, so authoritative labels supersede weak ones. Builds a **separate** `ml/data/processed_data/master_broad_v1.csv` (decision: keep broad-v1 apart from the legacy STEM-strict `master_dataset.csv`).
+- [x] First build: **2,492 rows** (1,500 edu / 992 non-edu), all `category` source so far.
+
+**Exit criteria:** 20k+ labeled rows in `master_broad_v1.csv` with a documented label-quality estimate. (Currently 2,492; scale scraping + add Gemini labels.)
+
+**Phase 1 commands (from repo root, after `cp .env.example .env`):**
+```bash
+python ml/scripts/youtube_category_scraper.py --categories 27,28   # edu (+ 24,20 non-edu)
+python ml/scripts/apply_category_labels.py        # fast weak labels, AND/OR:
+python ml/scripts/gemini_labeler.py               # LLM labels (needs billing)
+python ml/scripts/build_broad_dataset.py          # separate broad-v1 master, gemini>category
+```
 
 ---
 
@@ -207,13 +227,14 @@ Phase 1 (Scale data) ──► Phase 2 (Benchmark models)
 
 ## 8. Next Concrete Steps
 
-**Phase 0 is done.** ✅ Reproducible export, parity test, and pinned deps are in place. On to Phase 1:
+**Phase 0 done** ✅. **Phase 1 scaffolding built** ✅ (label definition, scraper, two labelers, docs). Remaining to actually scale the data:
 
-1. Decide the single label definition (STEM-strict vs broad "educational") and update `ml/data/gpt_labeller_prompt.txt`.
-2. Prototype the YouTube Data API scraper for Category IDs 27 / 20 / 24, writing to `ml/data/raw_data/*.jsonl`.
-3. Draft the LLM auto-labeling script with a confidence field + human spot-check.
-4. Run the expanded data through `ml/scripts/dataset_builder.py`, retrain, then `model_to_js_converter.py` → `parity_test.py` → `copy_model_to_extension.py`.
-5. (Optional, parallel) Load the extension unpacked and confirm the corrected TF-IDF improves real-feed filtering vs. the old build.
+1. **Add API keys:** `cp .env.example .env` and fill in `YOUTUBE_API_KEY` + `GEMINI_API_KEY`.
+2. **Scrape:** run `youtube_category_scraper.py` across edu (27/28) and non-edu (20/24/23) categories to build the raw pool.
+3. **Label:** start with `apply_category_labels.py` (free) and/or `gemini_labeler.py --limit 50` to sanity-check, then scale; spot-check label quality.
+4. **Merge with precedence (done ✅):** `build_broad_dataset.py` concatenates gemini > category and de-dupes by `videoId`, so authoritative labels win.
+5. **Build + retrain:** `build_broad_dataset.py` → `master_broad_v1.csv`, retrain the notebook, then `model_to_js_converter.py` → `parity_test.py` → `copy_model_to_extension.py`.
+6. **(Optional, parallel)** Load the extension unpacked and confirm the corrected TF-IDF improves real-feed filtering vs. the old build.
 
 ---
 
