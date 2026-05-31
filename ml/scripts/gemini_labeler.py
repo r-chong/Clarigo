@@ -158,7 +158,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--in", dest="inputs", nargs="*", default=None,
-                        help="Input JSONL file(s). Default: all ml/data/raw_data/api_*.jsonl")
+                        help="Input JSONL file(s). Default: api_*.jsonl, "
+                             "youtube_feed_*.jsonl, and homepage_*.jsonl in raw_data/")
     parser.add_argument("--out", type=Path, default=LABELED_DIR / "gemini_labeled.jsonl")
     parser.add_argument("--review-out", type=Path,
                         default=REVIEW_DIR / "gemini_low_confidence.jsonl")
@@ -178,7 +179,9 @@ def main() -> None:
     label_version = parse_label_version(definition_text)
 
     paths = ([Path(p) for p in args.inputs] if args.inputs
-             else sorted(RAW_DIR.glob("api_*.jsonl")))
+             else sorted(RAW_DIR.glob("api_*.jsonl"))
+             + sorted(RAW_DIR.glob("youtube_feed_*.jsonl"))
+             + sorted(RAW_DIR.glob("homepage_*.jsonl")))
     paths = [p for p in paths if p.exists()]
     if not paths:
         sys.exit(f"No input files found (looked in {rel(RAW_DIR)}). Run the scraper first.")
