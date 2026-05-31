@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 280px;
+      padding: 14px 16px;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      margin: 0;
+      color: #202124;
+    }
+    h1 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 12px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .stat {
+      background: #f1f3f4;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .stat strong {
+      font-size: 20px;
+      display: block;
+      line-height: 1.2;
+    }
+    .stat span {
+      color: #5f6368;
+      font-size: 12px;
+    }
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    #exportBtn {
+      background: #1a73e8;
+      color: #fff;
+    }
+    #exportBtn:disabled {
+      background: #dadce0;
+      color: #80868b;
+      cursor: default;
+    }
+    #clearBtn {
+      background: #fff;
+      color: #d93025;
+      border: 1px solid #dadce0;
+    }
+    .hint {
+      color: #5f6368;
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: 4px;
+    }
+    code {
+      font-size: 10px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube Feed Scraper</h1>
+
+  <div class="row">
+    <input type="checkbox" id="toggle" checked>
+    <label for="toggle" id="status">Scraping is on</label>
+  </div>
+
+  <div class="stat">
+    <strong id="count">0</strong>
+    <span>videos collected</span>
+  </div>
+
+  <button id="exportBtn" disabled>Export JSONL</button>
+  <button id="clearBtn" disabled>Clear collected data</button>
+
+  <p class="hint">
+    Browse YouTube (home, search, subscriptions, channels, sidebar, etc.) to
+    collect videos. Save the export to <code>ml/data/raw_data/</code>, then run
+    <code>gemini_labeler.py</code>.
+  </p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
