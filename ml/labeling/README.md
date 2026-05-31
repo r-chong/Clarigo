@@ -60,6 +60,32 @@ Using many diverse queries also surfaces many different channels, which helps
 the model generalize instead of memorizing a few channel names. Edit these
 lists freely. The Search API caps each query at ~500 results.
 
+## Language filtering (English-only)
+
+`regionCode` is geographic, not linguistic, so a US search still returns lots of
+non-English videos. We keep the model English-only via three cheap layers
+(`ml/scripts/lang_filter.py`):
+
+1. **Search bias:** the scraper sends `relevanceLanguage=en` (soft hint).
+2. **Declared language:** records keep YouTube's `defaultAudioLanguage` /
+   `defaultLanguage`; if present and not `en*`, the row is dropped.
+3. **Script heuristic:** rows whose title+channel are mostly non-Latin
+   characters (CJK, Cyrillic, Arabic, Devanagari, Hangul, Thai, …) are dropped.
+
+This runs at **intake** (the scraper, drop by default; `--keep-non-english` to
+opt out) and again when **building** the dataset (`build_broad_dataset.py`, same
+flag), so already-scraped data gets cleaned too. Audit any file without changing
+it:
+
+```bash
+python ml/scripts/lang_filter.py ml/data/raw_data/api_*.jsonl
+python ml/scripts/lang_filter.py ml/data/processed_data/master_broad_v1.csv
+```
+
+> Limitation: a character check only catches non-Latin **scripts**. It will not
+> distinguish Latin-script languages (Spanish, French, Portuguese, German) from
+> English — that needs real language ID (fastText/langdetect), a future upgrade.
+
 ## Commands (from repo root)
 
 ```bash
