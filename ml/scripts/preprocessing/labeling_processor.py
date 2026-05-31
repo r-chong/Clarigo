@@ -87,11 +87,10 @@ def process_all_labeled_data():
     """
     Process all JSONL files in the labeled_data folder and save results to normalized folder.
     """
-    # Define paths
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    labeled_data_dir = os.path.join(project_root, 'data', 'labeled_data')
-    normalized_dir = os.path.join(project_root, 'data', 'normalized')
+    # Define paths. The ml/ root is two levels up (ml/scripts/preprocessing/).
+    ml_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    labeled_data_dir = os.path.join(ml_root, 'data', 'labeled_data')
+    normalized_dir = os.path.join(ml_root, 'data', 'normalized')
     
     # Create normalized directory if it doesn't exist
     os.makedirs(normalized_dir, exist_ok=True)

@@ -1,0 +1,143 @@
+"""Build a SEPARATE broad-v1 master dataset from the new API-scraped labels.
+
+Kept deliberately separate from the legacy `master_dataset.csv` (which was
+hand-labeled under the older STEM-strict definition) so we never mix two label
+definitions in one training set.
+
+What it does:
+  1. Takes the broad-definition labeled files in PRECEDENCE order (highest
+     first): Gemini labels > category labels. When the same videoId appears in
+     more than one source, the higher-precedence label wins (Phase 1d).
+  2. Normalizes title/channelName with the SAME logic as the legacy pipeline
+     (ml/scripts/preprocessing/labeling_processor.py) for consistency.
+  3. Writes ml/data/processed_data/master_broad_v1.csv (+ .jsonl), carrying
+     label provenance (label_source / label_version / label_confidence).
+
+It does NOT touch master_dataset.csv or ml/data/normalized/.
+
+Usage (from repo root):
+    python ml/scripts/build_broad_dataset.py
+    python ml/scripts/build_broad_dataset.py --inputs ml/data/labeled_data/gemini_labeled.jsonl ml/data/labeled_data/api_category_labeled.jsonl
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+LABELED_DIR = REPO_ROOT / "ml" / "data" / "labeled_data"
+NORMALIZED_DIR = REPO_ROOT / "ml" / "data" / "normalized_broad"
+PROCESSED_DIR = REPO_ROOT / "ml" / "data" / "processed_data"
+
+sys.path.insert(0, str(REPO_ROOT / "ml" / "scripts" / "preprocessing"))
+import labeling_processor  # noqa: E402  (reuse the canonical normalization)
+
+# Default inputs in PRECEDENCE order (highest first). Gemini (authoritative
+# broad-v1) supersedes weak category labels for the same videoId.
+DEFAULT_INPUTS = [
+    LABELED_DIR / "gemini_labeled.jsonl",
+    LABELED_DIR / "api_category_labeled.jsonl",
+]
+
+KEEP_COLUMNS = [
+    "title", "videoUrl", "channelName", "channelUrl", "videoId", "label",
+    "label_source", "label_version", "label_confidence", "categoryId",
+]
+
+
+def rel(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def normalize_inputs(inputs: list[Path]) -> list[Path]:
+    """Normalize each labeled file into NORMALIZED_DIR, preserving order."""
+    NORMALIZED_DIR.mkdir(parents=True, exist_ok=True)
+    out_paths = []
+    for src in inputs:
+        dst = NORMALIZED_DIR / src.name
+        labeling_processor.process_single_file(str(src), str(dst))
+        out_paths.append(dst)
+    return out_paths
+
+
+def load_jsonl(path: Path) -> list[dict]:
+    rows = []
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        line = line.strip().lstrip("\ufeff")
+        if line:
+            try:
+                rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return rows
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--inputs", nargs="*", type=Path, default=None,
+                        help="Labeled JSONL files in precedence order (highest first). "
+                             "Default: gemini_labeled.jsonl then api_category_labeled.jsonl.")
+    parser.add_argument("--filename", default="master_broad_v1.csv",
+                        help="Output CSV filename in ml/data/processed_data/.")
+    args = parser.parse_args()
+
+    inputs = args.inputs if args.inputs else DEFAULT_INPUTS
+    inputs = [p for p in inputs if p.exists()]
+    if not inputs:
+        sys.exit("No broad-label input files found. Run apply_category_labels.py "
+                 "and/or gemini_labeler.py first.")
+
+    print("Inputs (precedence high -> low):")
+    for p in inputs:
+        print(f"  {rel(p)}")
+
+    normalized = normalize_inputs(inputs)
+
+    # Concatenate in precedence order, then drop duplicate videoIds keeping the
+    # FIRST occurrence (= highest-precedence source).
+    rows: list[dict] = []
+    for path in normalized:
+        rows.extend(load_jsonl(path))
+    if not rows:
+        sys.exit("No records loaded after normalization.")
+
+    df = pd.DataFrame(rows)
+    for col in KEEP_COLUMNS:
+        if col not in df.columns:
+            df[col] = None
+    df = df[KEEP_COLUMNS]
+
+    before = len(df)
+    df = df.drop_duplicates(subset=["videoId"], keep="first").reset_index(drop=True)
+    deduped = before - len(df)
+
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    csv_path = PROCESSED_DIR / args.filename
+    df.to_csv(csv_path, index=False, encoding="utf-8")
+    jsonl_path = csv_path.with_suffix(".jsonl")
+    with jsonl_path.open("w", encoding="utf-8") as fh:
+        for _, row in df.iterrows():
+            json.dump(row.to_dict(), fh, ensure_ascii=False)
+            fh.write("\n")
+
+    print(f"\nBuilt {rel(csv_path)}")
+    print(f"  rows: {len(df)} (deduped {deduped} cross-source/duplicate videoIds)")
+    n1 = int((df['label'] == 1).sum())
+    n0 = int((df['label'] == 0).sum())
+    print(f"  labels: educational(1)={n1}  non-educational(0)={n0}")
+    print("  by source:")
+    for src, count in df["label_source"].value_counts().items():
+        print(f"    {src}: {count}")
+
+
+if __name__ == "__main__":
+    main()

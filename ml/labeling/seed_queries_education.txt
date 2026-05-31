@@ -1,0 +1,46 @@
+# Seed queries for EDUCATIONAL scraping (used within edu categories, e.g. 27/28).
+# One query per line. Lines starting with # are ignored.
+# Broad coverage on purpose (STEM + humanities + practical how-to + languages +
+# finance), to match the broad-v1 label definition and surface diverse channels.
+# Edit freely — this list is meant to grow.
+
+# STEM
+calculus tutorial
+linear algebra explained
+physics lecture
+organic chemistry
+biology lesson
+statistics tutorial
+python programming tutorial
+data structures and algorithms
+machine learning explained
+electronics tutorial
+how transistors work
+differential equations
+
+# Computer science / software
+javascript crash course
+sql tutorial
+git tutorial
+operating systems lecture
+computer networking explained
+
+# Humanities & social science
+world history documentary lesson
+economics explained
+philosophy introduction
+psychology lecture
+civics how government works
+
+# Languages & test prep
+learn spanish lesson
+english grammar lesson
+sat math prep
+
+# Practical how-to / skills
+music theory lesson
+guitar lesson for beginners
+how to draw tutorial
+personal finance basics
+excel tutorial
+photography tutorial
