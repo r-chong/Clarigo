@@ -47,7 +47,7 @@ DEFAULT_INPUTS = [
 ]
 
 KEEP_COLUMNS = [
-    "title", "videoUrl", "channelName", "channelUrl", "videoId", "label",
+    "label", "title", "videoUrl", "channelName", "channelUrl", "videoId",
     "label_source", "label_version", "label_confidence", "categoryId",
 ]
 
@@ -120,7 +120,7 @@ def main() -> None:
         if col not in df.columns:
             df[col] = None
     df = df[KEEP_COLUMNS]
-
+    df = df.sort_values(by='label')
     before = len(df)
     df = df.drop_duplicates(subset=["videoId"], keep="first").reset_index(drop=True)
     deduped = before - len(df)
