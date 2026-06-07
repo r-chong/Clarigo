@@ -43,7 +43,7 @@ import labeling_processor  # noqa: E402  (reuse the canonical normalization)
 # broad-v1) supersedes weak category labels for the same videoId.
 DEFAULT_INPUTS = [
     LABELED_DIR / "gemini_labeled.jsonl",
-    # LABELED_DIR / "api_category_labeled.jsonl", # I only want to keep the gemini ones!
+    LABELED_DIR / "api_category_labeled.jsonl", # I only want to keep the gemini ones!
 ]
 
 KEEP_COLUMNS = [

@@ -1,29 +1,22 @@
 <!--
 LABEL_VERSION: broad-v1
-Bump LABEL_VERSION whenever the definition below changes in a way that could
-flip labels. The labeler stamps this version onto every record it produces, so
-we can tell which definition any given label came from and safely re-label the
-raw data later WITHOUT re-scraping. Keep the version token on its own line in
-this exact `LABEL_VERSION: <token>` format — tooling parses it.
 -->
 
 # Clarigo Label Definition
-
 **Version:** `broad-v1`
-**Status:** intentionally provisional — this definition is expected to be
-revisited. Raw scrapes are kept immutable and rich precisely so we can re-run
-labeling under a future definition without re-collecting data.
 
 ## Task
 
 Classify a YouTube video as **educational (`1`)** or **non-educational (`0`)**
-using its title and channel name (and, when available, description/tags).
+using its title and channel name only.
 
 ## Definition (broad "educational")
 
 A video is **educational (`1`)** if its **primary purpose is to teach, explain,
 or instruct** so that a viewer comes away understanding a concept or able to do
-something. This is intentionally **broad** and spans subjects:
+something. When classifying a video, please ask the question "Would a reasonable student / learner watch this video as an effective means to learn? Would they watch this video to study?" 
+
+This is intentionally **broad** and spans subjects:
 
 - STEM: math, science, engineering, programming, data, etc.
 - Humanities & social science: history, economics, philosophy, civics, law.
@@ -34,7 +27,7 @@ something. This is intentionally **broad** and spans subjects:
   are framed to teach.
 
 A video is **non-educational (`0`)** if its primary purpose is entertainment,
-promotion, or personal expression rather than teaching:
+promotion, or personal expression rather than teaching (anything that is not defined as Educational):
 
 - Entertainment/spectacle: vlogs, challenges, pranks, reactions, gameplay,
   music videos, comedy, sports highlights.
@@ -53,6 +46,9 @@ promotion, or personal expression rather than teaching:
   works or how to use it.
 - When genuinely ambiguous, prefer `0` and rely on the confidence score to flag
   it for human review.
+
+Use only the title and channel provided. Do not infer video content beyond what metadata suggests.
+Shorts can be 0 or 1; judge by intent, not format. #shorts alone doesn't mean non-educational.
 
 ## Output contract (for automated labelers)
 

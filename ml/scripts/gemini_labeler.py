@@ -2,7 +2,7 @@
 
 This is the AUTHORITATIVE (but still "silver") labeling path. It reads the
 broad-educational definition from ml/labeling/label_definition.md, asks Gemini
-to classify each video by title + channel (+ description when present), and
+to classify each video by title + channel only (matching inference inputs), and
 writes labeled records with full provenance so labels are traceable and the
 data can be re-labeled later under a new definition WITHOUT re-scraping:
 
@@ -107,12 +107,10 @@ def existing_video_ids(out_path: Path) -> set[str]:
 def build_prompt(definition_text: str, batch: list[dict]) -> str:
     items = []
     for i, rec in enumerate(batch):
-        desc = (rec.get("description") or "")[:300]
         items.append({
             "index": i,
             "title": rec.get("title", ""),
             "channel": rec.get("channelName", ""),
-            "description": desc,
         })
     return (
         f"{definition_text}\n\n"
