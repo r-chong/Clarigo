@@ -15,3 +15,5 @@ notebook
 # Phase 1 data pipeline (LLM auto-labeling). The YouTube scraper uses only the
 # standard library, so no extra dep there.
 google-genai
+
+fasttext-wheel
