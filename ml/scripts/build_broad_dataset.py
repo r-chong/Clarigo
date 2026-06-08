@@ -18,6 +18,7 @@ It does NOT touch master_dataset.csv or ml/data/normalized/.
 Usage (from repo root):
     python ml/scripts/build_broad_dataset.py
     python ml/scripts/build_broad_dataset.py --inputs ml/data/labeled_data/gemini_labeled.jsonl ml/data/labeled_data/api_category_labeled.jsonl
+    python ml/scripts/build_broad_dataset.py --base ml/data/processed_data/master_broad_v1.jsonl --append ml/data/labeled_data/gemini_labeled.jsonl
 """
 
 from __future__ import annotations
@@ -43,7 +44,7 @@ import labeling_processor  # noqa: E402  (reuse the canonical normalization)
 # broad-v1) supersedes weak category labels for the same videoId.
 DEFAULT_INPUTS = [
     LABELED_DIR / "gemini_labeled.jsonl",
-    LABELED_DIR / "api_category_labeled.jsonl", # I only want to keep the gemini ones!
+    LABELED_DIR / "api_category_labeled.jsonl",
 ]
 
 KEEP_COLUMNS = [
@@ -88,6 +89,12 @@ def main() -> None:
     parser.add_argument("--inputs", nargs="*", type=Path, default=None,
                         help="Labeled JSONL files in precedence order (highest first). "
                              "Default: gemini_labeled.jsonl then api_category_labeled.jsonl.")
+    parser.add_argument("--base", type=Path, default=None,
+                        help="Existing master JSONL/CSV to keep as-is. With --append, only "
+                             "videoIds not already in the base are added.")
+    parser.add_argument("--append", nargs="*", type=Path, default=None,
+                        help="Labeled JSONL file(s) to add without overwriting existing "
+                             "videoIds (use with --base or after --inputs).")
     parser.add_argument("--filename", default="master_broad_v1.csv",
                         help="Output CSV filename in ml/data/processed_data/.")
     parser.add_argument("--keep-non-english", action="store_true",
@@ -95,35 +102,77 @@ def main() -> None:
                              "(default: drop them via lang_filter, title+channel).")
     args = parser.parse_args()
 
-    inputs = args.inputs if args.inputs else DEFAULT_INPUTS
-    inputs = [p for p in inputs if p.exists()]
-    if not inputs:
-        sys.exit("No broad-label input files found. Run apply_category_labels.py "
-                 "and/or gemini_labeler.py first.")
+    append_paths = [p for p in (args.append or []) if p.exists()]
 
-    print("Inputs (precedence high -> low):")
-    for p in inputs:
-        print(f"  {rel(p)}")
+    if args.base:
+        if not args.base.exists():
+            sys.exit(f"Base file not found: {rel(args.base)}")
+        if args.base.suffix.lower() == ".csv":
+            base_df = pd.read_csv(args.base)
+            rows = base_df.to_dict(orient="records")
+        else:
+            rows = load_jsonl(args.base)
+        print(f"Base: {rel(args.base)} ({len(rows)} rows)")
+    else:
+        inputs = args.inputs if args.inputs else DEFAULT_INPUTS
+        inputs = [p for p in inputs if p.exists()]
+        if not inputs:
+            sys.exit("No broad-label input files found. Run apply_category_labels.py "
+                     "and/or gemini_labeler.py first.")
+        print("Inputs (precedence high -> low):")
+        for p in inputs:
+            print(f"  {rel(p)}")
+        normalized = normalize_inputs(inputs)
+        rows = []
+        for path in normalized:
+            rows.extend(load_jsonl(path))
+        if not rows:
+            sys.exit("No records loaded after normalization.")
+        before = len(rows)
+        seen: set[str] = set()
+        deduped_base = 0
+        unique_rows: list[dict] = []
+        for row in rows:
+            vid = row.get("videoId", "")
+            if vid and vid in seen:
+                deduped_base += 1
+                continue
+            if vid:
+                seen.add(vid)
+            unique_rows.append(row)
+        rows = unique_rows
+        if deduped_base:
+            print(f"  deduped {deduped_base} duplicate videoIds among inputs")
 
-    normalized = normalize_inputs(inputs)
+    if append_paths:
+        print("Append (new videoIds only):")
+        for p in append_paths:
+            print(f"  {rel(p)}")
+        seen = {r.get("videoId", "") for r in rows if r.get("videoId")}
+        appended, skipped = 0, 0
+        for src in append_paths:
+            dst = NORMALIZED_DIR / src.name
+            labeling_processor.process_single_file(str(src), str(dst))
+            for row in load_jsonl(dst):
+                vid = row.get("videoId", "")
+                if not vid or vid in seen:
+                    skipped += 1
+                    continue
+                seen.add(vid)
+                rows.append(row)
+                appended += 1
+        print(f"  appended {appended} rows, skipped {skipped} (already in base)")
 
-    # Concatenate in precedence order, then drop duplicate videoIds keeping the
-    # FIRST occurrence (= highest-precedence source).
-    rows: list[dict] = []
-    for path in normalized:
-        rows.extend(load_jsonl(path))
     if not rows:
-        sys.exit("No records loaded after normalization.")
+        sys.exit("No records to write.")
 
     df = pd.DataFrame(rows)
     for col in KEEP_COLUMNS:
         if col not in df.columns:
             df[col] = None
     df = df[KEEP_COLUMNS]
-    df = df.sort_values(by='label')
-    before = len(df)
-    df = df.drop_duplicates(subset=["videoId"], keep="first").reset_index(drop=True)
-    deduped = before - len(df)
+    df = df.sort_values(by="label")
+    deduped = 0
 
     non_english = 0
     if not args.keep_non_english:
