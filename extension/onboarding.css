@@ -1,0 +1,330 @@
+/**
+ * Clarigo onboarding — responsive, lightweight, student-friendly.
+ */
+
+:root {
+  --bg: #fafbfc;
+  --surface: #ffffff;
+  --text: #1a1d21;
+  --text-muted: #5c6269;
+  --accent: #0d6b4c;
+  --accent-hover: #0a5840;
+  --border: #e4e7eb;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --max-width: 560px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.onboarding {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+/* ----- Hero ----- */
+.hero {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.hero-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: rgba(13, 107, 76, 0.1);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.hero-headline {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 0.75rem;
+  color: var(--text);
+  animation: fadeIn 0.5s ease-out 0.1s both;
+}
+
+.hero-subtext {
+  font-size: 1.0625rem;
+  color: var(--text-muted);
+  margin: 0 0 1.75rem;
+  animation: fadeIn 0.5s ease-out 0.2s both;
+}
+
+.hero-visual {
+  animation: fadeIn 0.6s ease-out 0.3s both;
+}
+
+.split-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 1.25rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.split-before,
+.split-after {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.split-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.thumb-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.thumb-grid--cluttered {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.thumb-grid--clean {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.thumb {
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: var(--border);
+  border-radius: 6px;
+}
+
+.thumb-grid--cluttered .thumb {
+  background: linear-gradient(135deg, #e8eaed 0%, #dadce0 100%);
+}
+
+.thumb-grid--clean .thumb {
+  background: linear-gradient(135deg, rgba(13, 107, 76, 0.15) 0%, rgba(13, 107, 76, 0.08) 100%);
+}
+
+.split-arrow {
+  font-size: 1.25rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ----- Section headings ----- */
+.section-heading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+.section-intro {
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+}
+
+/* ----- Pin tutorial ----- */
+.pin-tutorial {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.pin-steps {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+}
+
+.pin-step {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.pin-step:last-child {
+  margin-bottom: 0;
+}
+
+.pin-step-num {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--surface);
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.pin-step-text {
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+
+.pin-illustration {
+  text-align: center;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.puzzle-demo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.puzzle-icon {
+  font-size: 1.5rem;
+}
+
+/* ----- ML Reality ----- */
+.ml-reality {
+  margin-bottom: 2.5rem;
+}
+
+.ml-copy {
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+}
+
+.ml-tip {
+  padding: 1rem 1.25rem;
+  background: rgba(13, 107, 76, 0.08);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--accent);
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+/* ----- Tips ----- */
+.tips {
+  margin-bottom: 2.5rem;
+}
+
+.tips-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+.tip-item:last-child {
+  border-bottom: none;
+}
+
+.tip-icon {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+}
+
+.tip-item a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.tip-item a:hover {
+  text-decoration: underline;
+}
+
+/* ----- CTA ----- */
+.cta-section {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+
+.cta-button {
+  display: inline-block;
+  padding: 0.875rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(13, 107, 76, 0.3);
+}
+
+.cta-button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.cta-button:active {
+  transform: translateY(0);
+}
+
+/* ----- Responsive ----- */
+@media (min-width: 480px) {
+  .onboarding {
+    padding: 2.5rem 2rem 3.5rem;
+  }
+
+  .split-view {
+    padding: 1.5rem;
+  }
+
+  .pin-tutorial {
+    padding: 1.75rem;
+  }
+}
+
+@media (min-width: 600px) {
+  .onboarding {
+    padding: 3rem 2rem 4rem;
+  }
+}

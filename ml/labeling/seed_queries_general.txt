@@ -1,0 +1,32 @@
+# Seed queries for NON-EDUCATIONAL scraping (used within non-edu categories,
+# e.g. 24 Entertainment, 20 Gaming, 23 Comedy). One query per line; # = comment.
+# Terms chosen to surface entertainment/spectacle content (label hint 0).
+# Edit freely.
+
+# Entertainment / spectacle
+funny moments
+vlog
+reaction video
+prank
+challenge video
+celebrity interview
+movie trailer
+behind the scenes
+
+# Gaming
+gameplay walkthrough
+gaming highlights
+speedrun
+game review
+
+# Music / comedy / sports
+official music video
+stand up comedy
+sports highlights
+top 10 plays
+
+# Lifestyle / personal
+day in my life
+haul
+unboxing
+storytime

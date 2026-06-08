@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Clarigo - YouTube Filter For Non-Educational Videos",
+  "version": "0.8.0",
+  "description": "Use YouTube clearly with no distractions",
+  "permissions": ["storage", "tabs"],
+  "background": { "service_worker": "background.js" },
+  "options_page": "options.html",
+  "action": { "default_popup": "popup.html" },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["model/clarigo_classifier.js", "youtube-dom.js", "content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["model/clarigo_model.json"],
+      "matches": ["*://www.youtube.com/*"]
+    }
+  ]
+}

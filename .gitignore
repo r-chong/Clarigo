@@ -2,3 +2,25 @@ test.py
 predict_video.py
 NEXT_STEPS.md
 notes.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.venv*/
+
+# Secrets / local config
+.env
+.env.local
+
+# Review queue is generated, machine-specific working data
+ml/data/review_queue/
+
+# fastText: downloaded vectors, generated train/valid splits
+ml/data/fasttext/
+crawl-300d-2M.vec
+crawl-300d-2M.vec.zip
+*.vec.zip
+
+# fastText trained models (regenerate via ml/fasttext/train_fasttext.py)
+ml/trained_models/*.bin

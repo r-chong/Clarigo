@@ -1,8 +1,19 @@
-pandas
-numpy
-matplotlib
-seaborn
-scikit-learn
+# Pinned to match the environment the model was trained/serialized in.
+# scikit-learn is pinned to 1.7.1 because the committed
+# ml/trained_models/educational_video_classifier.joblib was created with 1.7.1;
+# loading it under a different version triggers InconsistentVersionWarning and
+# risks subtly different results. Bump this only when you retrain.
+scikit-learn==1.7.1
+joblib==1.5.3
+pandas==3.0.2
+numpy==2.4.4
+matplotlib==3.10.8
+seaborn==0.13.2
 jupyter
 notebook
-joblib
+
+# Phase 1 data pipeline (LLM auto-labeling). The YouTube scraper uses only the
+# standard library, so no extra dep there.
+google-genai
+
+fasttext-wheel

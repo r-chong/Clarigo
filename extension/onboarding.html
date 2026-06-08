@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome to Clarigo</title>
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body>
+  <main class="onboarding">
+    <!-- A. Hero Section -->
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="hero-badge">Extension installed</div>
+      <h1 id="hero-heading" class="hero-headline">Reclaim Your Study Sessions</h1>
+      <p class="hero-subtext">Clarigo uses machine learning to filter out entertainment and leave only the educational content you actually need.</p>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="split-view">
+          <div class="split-before">
+            <span class="split-label">Before</span>
+            <div class="thumb-grid thumb-grid--cluttered">
+              <span class="thumb"></span><span class="thumb"></span><span class="thumb"></span>
+              <span class="thumb"></span><span class="thumb"></span><span class="thumb"></span>
+            </div>
+          </div>
+          <div class="split-arrow" aria-hidden="true">→</div>
+          <div class="split-after">
+            <span class="split-label">With Clarigo</span>
+            <div class="thumb-grid thumb-grid--clean">
+              <span class="thumb"></span><span class="thumb"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- B. Pin to Toolbar Tutorial -->
+    <section class="pin-tutorial" aria-labelledby="pin-heading">
+      <h2 id="pin-heading" class="section-heading">Pin Clarigo for Quick Access</h2>
+      <p class="section-intro">You’ll want to turn Clarigo on and off when you switch between study mode and breaks. Keep it one click away:</p>
+      <ol class="pin-steps">
+        <li class="pin-step">
+          <span class="pin-step-num">1</span>
+          <span class="pin-step-text">Click the <strong>puzzle piece</strong> icon in your Chrome toolbar (top-right).</span>
+        </li>
+        <li class="pin-step">
+          <span class="pin-step-num">2</span>
+          <span class="pin-step-text">Find <strong>Clarigo</strong> in the list and click the <strong>pin</strong> icon next to it.</span>
+        </li>
+        <li class="pin-step">
+          <span class="pin-step-num">3</span>
+          <span class="pin-step-text">Clarigo’s icon will stay visible so you can open the popup anytime.</span>
+        </li>
+      </ol>
+      <div class="pin-illustration" aria-hidden="true">
+        <div class="puzzle-demo">
+          <span class="puzzle-icon" aria-hidden="true">🧩</span>
+          <span class="puzzle-caption">Extensions → Pin Clarigo</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- C. ML Reality Check -->
+    <section class="ml-reality" aria-labelledby="ml-heading">
+      <h2 id="ml-heading" class="section-heading">How the Filter Works</h2>
+      <p class="ml-copy">Clarigo’s AI evaluates videos in real time. It’s smart, but sometimes an educational video might get caught in the filter, or a distraction might slip through.</p>
+    </section>
+
+    <!-- D. Student-Centric Tips -->
+    <section class="tips" aria-labelledby="tips-heading">
+      <h2 id="tips-heading" class="section-heading">Quick Tips</h2>
+      <ul class="tips-list">
+        <li class="tip-item">
+          <span class="tip-icon" aria-hidden="true">🔒</span>
+          <span><strong>Privacy:</strong> Clarigo only looks at YouTube video metadata to classify content. Your browsing is processed locally; we don’t collect your personal information.</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- E. CTA -->
+    <section class="cta-section">
+      <a href="#" id="cta-open-youtube" class="cta-button">Open YouTube & Test It Out</a>
+    </section>
+  </main>
+  <script src="onboarding.js"></script>
+</body>
+</html>
