@@ -4,21 +4,23 @@ Kept deliberately separate from the legacy `master_dataset.csv` (which was
 hand-labeled under the older STEM-strict definition) so we never mix two label
 definitions in one training set.
 
-What it does:
-  1. Takes the broad-definition labeled files in PRECEDENCE order (highest
-     first): Gemini labels > category labels. When the same videoId appears in
-     more than one source, the higher-precedence label wins (Phase 1d).
-  2. Normalizes title/channelName with the SAME logic as the legacy pipeline
-     (ml/scripts/preprocessing/labeling_processor.py) for consistency.
-  3. Writes ml/data/processed_data/master_broad_v1.csv (+ .jsonl), carrying
-     label provenance (label_source / label_version / label_confidence).
+Default behaviour (append mode):
+  1. Load the existing master_broad_v1.jsonl if present (keeps current rows).
+  2. Append rows from labeled sources, adding only videoIds not already present.
+     Order: api_category_labeled.jsonl, then gemini_labeled.jsonl.
+  3. Normalize title/channelName via labeling_processor for newly appended rows.
+
+Use --rebuild to discard the existing master and merge from --inputs with
+precedence instead (first source wins on duplicate videoIds; default order is
+gemini > category).
 
 It does NOT touch master_dataset.csv or ml/data/normalized/.
 
 Usage (from repo root):
     python ml/scripts/build_broad_dataset.py
-    python ml/scripts/build_broad_dataset.py --inputs ml/data/labeled_data/gemini_labeled.jsonl ml/data/labeled_data/api_category_labeled.jsonl
-    python ml/scripts/build_broad_dataset.py --base ml/data/processed_data/master_broad_v1.jsonl --append ml/data/labeled_data/gemini_labeled.jsonl
+    python ml/scripts/build_broad_dataset.py --append ml/data/labeled_data/gemini_labeled.jsonl
+    python ml/scripts/build_broad_dataset.py --rebuild
+    python ml/scripts/build_broad_dataset.py --rebuild --inputs ml/data/labeled_data/gemini_labeled.jsonl ml/data/labeled_data/api_category_labeled.jsonl
 """
 
 from __future__ import annotations
@@ -40,11 +42,16 @@ PROCESSED_DIR = REPO_ROOT / "ml" / "data" / "processed_data"
 sys.path.insert(0, str(REPO_ROOT / "ml" / "scripts" / "preprocessing"))
 import labeling_processor  # noqa: E402  (reuse the canonical normalization)
 
-# Default inputs in PRECEDENCE order (highest first). Gemini (authoritative
-# broad-v1) supersedes weak category labels for the same videoId.
-DEFAULT_INPUTS = [
+# Used by --rebuild only (precedence: first source wins on duplicate videoIds).
+REBUILD_INPUTS = [
     LABELED_DIR / "gemini_labeled.jsonl",
     LABELED_DIR / "api_category_labeled.jsonl",
+]
+
+# Default append sources (append mode): existing rows are kept; these add new ids.
+DEFAULT_APPEND = [
+    LABELED_DIR / "api_category_labeled.jsonl",
+    LABELED_DIR / "gemini_labeled.jsonl",
 ]
 
 KEEP_COLUMNS = [
@@ -60,15 +67,16 @@ def rel(path: Path) -> str:
         return str(path)
 
 
-def normalize_inputs(inputs: list[Path]) -> list[Path]:
-    """Normalize each labeled file into NORMALIZED_DIR, preserving order."""
+def master_jsonl_path(filename: str) -> Path:
+    return PROCESSED_DIR / Path(filename).with_suffix(".jsonl").name
+
+
+def normalize_labeled(src: Path) -> Path:
+    """Normalize one labeled file into NORMALIZED_DIR; return normalized path."""
     NORMALIZED_DIR.mkdir(parents=True, exist_ok=True)
-    out_paths = []
-    for src in inputs:
-        dst = NORMALIZED_DIR / src.name
-        labeling_processor.process_single_file(str(src), str(dst))
-        out_paths.append(dst)
-    return out_paths
+    dst = NORMALIZED_DIR / src.name
+    labeling_processor.process_single_file(str(src), str(dst))
+    return dst
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -83,18 +91,63 @@ def load_jsonl(path: Path) -> list[dict]:
     return rows
 
 
+def load_base(path: Path) -> list[dict]:
+    if path.suffix.lower() == ".csv":
+        return pd.read_csv(path).to_dict(orient="records")
+    return load_jsonl(path)
+
+
+def append_labeled(rows: list[dict], sources: list[Path]) -> tuple[int, int]:
+    """Append rows from sources; skip videoIds already in rows. Returns appended, skipped."""
+    seen = {r.get("videoId", "") for r in rows if r.get("videoId")}
+    appended, skipped = 0, 0
+    for src in sources:
+        normalized = normalize_labeled(src)
+        for row in load_jsonl(normalized):
+            vid = row.get("videoId", "")
+            if not vid or vid in seen:
+                skipped += 1
+                continue
+            seen.add(vid)
+            rows.append(row)
+            appended += 1
+    return appended, skipped
+
+
+def merge_precedence(sources: list[Path]) -> list[dict]:
+    """Merge labeled sources; first occurrence of each videoId wins."""
+    normalized = [normalize_labeled(src) for src in sources]
+    seen: set[str] = set()
+    rows: list[dict] = []
+    deduped = 0
+    for path in normalized:
+        for row in load_jsonl(path):
+            vid = row.get("videoId", "")
+            if vid and vid in seen:
+                deduped += 1
+                continue
+            if vid:
+                seen.add(vid)
+            rows.append(row)
+    if deduped:
+        print(f"  deduped {deduped} duplicate videoIds among inputs")
+    return rows
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--rebuild", action="store_true",
+                        help="Ignore existing master; merge --inputs with precedence "
+                             "(first source wins). Default inputs: gemini then category.")
     parser.add_argument("--inputs", nargs="*", type=Path, default=None,
-                        help="Labeled JSONL files in precedence order (highest first). "
-                             "Default: gemini_labeled.jsonl then api_category_labeled.jsonl.")
+                        help="Labeled JSONL files for --rebuild (precedence order).")
     parser.add_argument("--base", type=Path, default=None,
-                        help="Existing master JSONL/CSV to keep as-is. With --append, only "
-                             "videoIds not already in the base are added.")
+                        help="Existing master JSONL/CSV to keep. Default: master_broad_v1.jsonl "
+                             "if it exists.")
     parser.add_argument("--append", nargs="*", type=Path, default=None,
-                        help="Labeled JSONL file(s) to add without overwriting existing "
-                             "videoIds (use with --base or after --inputs).")
+                        help="Labeled JSONL file(s) to append (new videoIds only). "
+                             "Default: api_category_labeled.jsonl then gemini_labeled.jsonl.")
     parser.add_argument("--filename", default="master_broad_v1.csv",
                         help="Output CSV filename in ml/data/processed_data/.")
     parser.add_argument("--keep-non-english", action="store_true",
@@ -102,66 +155,47 @@ def main() -> None:
                              "(default: drop them via lang_filter, title+channel).")
     args = parser.parse_args()
 
-    append_paths = [p for p in (args.append or []) if p.exists()]
-
-    if args.base:
-        if not args.base.exists():
-            sys.exit(f"Base file not found: {rel(args.base)}")
-        if args.base.suffix.lower() == ".csv":
-            base_df = pd.read_csv(args.base)
-            rows = base_df.to_dict(orient="records")
-        else:
-            rows = load_jsonl(args.base)
-        print(f"Base: {rel(args.base)} ({len(rows)} rows)")
-    else:
-        inputs = args.inputs if args.inputs else DEFAULT_INPUTS
+    if args.rebuild:
+        inputs = args.inputs if args.inputs else REBUILD_INPUTS
         inputs = [p for p in inputs if p.exists()]
         if not inputs:
-            sys.exit("No broad-label input files found. Run apply_category_labels.py "
-                     "and/or gemini_labeler.py first.")
-        print("Inputs (precedence high -> low):")
+            sys.exit("No input files found for --rebuild.")
+        print("Rebuild (precedence high -> low):")
         for p in inputs:
             print(f"  {rel(p)}")
-        normalized = normalize_inputs(inputs)
-        rows = []
-        for path in normalized:
-            rows.extend(load_jsonl(path))
+        rows = merge_precedence(inputs)
         if not rows:
             sys.exit("No records loaded after normalization.")
-        before = len(rows)
-        seen: set[str] = set()
-        deduped_base = 0
-        unique_rows: list[dict] = []
-        for row in rows:
-            vid = row.get("videoId", "")
-            if vid and vid in seen:
-                deduped_base += 1
-                continue
-            if vid:
-                seen.add(vid)
-            unique_rows.append(row)
-        rows = unique_rows
-        if deduped_base:
-            print(f"  deduped {deduped_base} duplicate videoIds among inputs")
+    else:
+        base_path = args.base
+        if base_path is None:
+            default_master = master_jsonl_path(args.filename)
+            base_path = default_master if default_master.exists() else None
 
-    if append_paths:
-        print("Append (new videoIds only):")
-        for p in append_paths:
-            print(f"  {rel(p)}")
-        seen = {r.get("videoId", "") for r in rows if r.get("videoId")}
-        appended, skipped = 0, 0
-        for src in append_paths:
-            dst = NORMALIZED_DIR / src.name
-            labeling_processor.process_single_file(str(src), str(dst))
-            for row in load_jsonl(dst):
-                vid = row.get("videoId", "")
-                if not vid or vid in seen:
-                    skipped += 1
-                    continue
-                seen.add(vid)
-                rows.append(row)
-                appended += 1
-        print(f"  appended {appended} rows, skipped {skipped} (already in base)")
+        rows: list[dict] = []
+        if base_path is not None:
+            if not base_path.exists():
+                sys.exit(f"Base file not found: {rel(base_path)}")
+            rows = load_base(base_path)
+            print(f"Base: {rel(base_path)} ({len(rows)} rows)")
+        else:
+            print("Base: (none — starting empty master)")
+
+        append_paths = (
+            [p for p in args.append if p.exists()]
+            if args.append is not None
+            else [p for p in DEFAULT_APPEND if p.exists()]
+        )
+        if not append_paths:
+            if not rows:
+                sys.exit("No broad-label input files found. Run apply_category_labels.py "
+                         "and/or gemini_labeler.py first.")
+        else:
+            print("Append (new videoIds only):")
+            for p in append_paths:
+                print(f"  {rel(p)}")
+            appended, skipped = append_labeled(rows, append_paths)
+            print(f"  appended {appended} rows, skipped {skipped} (already in base)")
 
     if not rows:
         sys.exit("No records to write.")
@@ -172,7 +206,6 @@ def main() -> None:
             df[col] = None
     df = df[KEEP_COLUMNS]
     df = df.sort_values(by="label")
-    deduped = 0
 
     non_english = 0
     if not args.keep_non_english:
@@ -197,10 +230,9 @@ def main() -> None:
             fh.write("\n")
 
     print(f"\nBuilt {rel(csv_path)}")
-    print(f"  rows: {len(df)} (deduped {deduped} cross-source/duplicate videoIds, "
-          f"dropped {non_english} non-English)")
-    n1 = int((df['label'] == 1).sum())
-    n0 = int((df['label'] == 0).sum())
+    print(f"  rows: {len(df)} (dropped {non_english} non-English)")
+    n1 = int((df["label"] == 1).sum())
+    n0 = int((df["label"] == 0).sum())
     print(f"  labels: educational(1)={n1}  non-educational(0)={n0}")
     print("  by source:")
     for src, count in df["label_source"].value_counts().items():
