@@ -10,6 +10,16 @@ const error = (...args) => console.error(...args);
 const classifier = new ClarigoClassifier();
 let modelLoaded = false;
 let clarigoEnabled = true;
+let whitelistedChannelKeys = new Set();
+
+async function loadWhitelist() {
+    const data = await new Promise((resolve) => chrome.storage.local.get('whitelistedChannels', resolve));
+    whitelistedChannelKeys = new Set((data.whitelistedChannels || []).map((channel) => channel.key));
+}
+
+function isWhitelistedChannel(channelUrl, channelName) {
+    return window.ClarigoWhitelist.isWhitelisted(whitelistedChannelKeys, channelUrl, channelName);
+}
 
 async function loadModel() {
     if (modelLoaded) return true;
@@ -64,7 +74,11 @@ function recordBlockedDistraction(videoElement, title, channelName) {
     chrome.runtime.sendMessage({ type: 'videoBlocked', videoKey: key }).catch(() => {});
 }
 
-function shouldHideVideo({ title, channelName }) {
+function shouldHideVideo({ title, channelName, channelUrl }) {
+    if (isWhitelistedChannel(channelUrl, channelName)) {
+        log(`Clarigo: Skipping whitelisted channel - "${channelName}"`);
+        return false;
+    }
     if (!modelLoaded || !classifier.isLoaded) return false;
     if (!title) return false;
 
@@ -116,7 +130,7 @@ function processVideos() {
 
         if (!title) log('Clarigo: Could not extract title from video element');
 
-        if (clarigoEnabled && shouldHideVideo({ title, channelName: channel.name })) {
+        if (clarigoEnabled && shouldHideVideo({ title, channelName: channel.name, channelUrl: channel.url })) {
             videoElement.classList.add('cg-hide');
             recordBlockedDistraction(videoElement, title, channel.name);
             hiddenCount++;
@@ -146,6 +160,68 @@ function resetProcessedState() {
     document.querySelectorAll('.cg-processed').forEach((el) => el.classList.remove('cg-processed'));
 }
 
+async function reprocessAfterWhitelistChange() {
+    await loadWhitelist();
+    updateChannelPageButton();
+    if (!clarigoEnabled) return;
+    resetProcessedState();
+    unhideAllVideos();
+    processVideos();
+}
+
+function ensureChannelPageButton() {
+    if (!window.ClarigoWhitelist.isChannelPage()) return;
+
+    let button = document.getElementById('cg-whitelist-channel-btn');
+    if (!button) {
+        button = document.createElement('button');
+        button.id = 'cg-whitelist-channel-btn';
+        button.type = 'button';
+        button.className = 'cg-whitelist-channel-btn';
+        button.addEventListener('click', () => {
+            const channel = window.ClarigoWhitelist.getCurrentChannelFromPage();
+            if (!channel?.key) return;
+
+            chrome.storage.local.get('whitelistedChannels', (data) => {
+                const channels = data.whitelistedChannels || [];
+                if (channels.some((entry) => entry.key === channel.key)) return;
+
+                channels.push({
+                    key: channel.key,
+                    label: channel.label || channel.key,
+                    url: channel.url || ''
+                });
+                chrome.storage.local.set({ whitelistedChannels: channels });
+            });
+        });
+
+        const host =
+            document.querySelector('#channel-header #buttons') ||
+            document.querySelector('ytd-channel-name')?.parentElement ||
+            document.querySelector('#inner-header-container');
+        if (host) host.appendChild(button);
+    }
+
+    updateChannelPageButton();
+}
+
+function updateChannelPageButton() {
+    const button = document.getElementById('cg-whitelist-channel-btn');
+    if (!button) return;
+
+    const channel = window.ClarigoWhitelist.getCurrentChannelFromPage();
+    if (!channel?.key) {
+        button.hidden = true;
+        return;
+    }
+
+    button.hidden = false;
+    const isWhitelisted = whitelistedChannelKeys.has(channel.key);
+    button.textContent = isWhitelisted ? 'Channel whitelisted' : 'Never block this channel';
+    button.classList.toggle('is-active', isWhitelisted);
+    button.disabled = isWhitelisted;
+}
+
 async function applyEnabledState(enabled) {
     clarigoEnabled = enabled;
     if (enabled) {
@@ -166,13 +242,20 @@ chrome.runtime.onMessage.addListener((msg) => {
 async function initializeClarigo() {
     log('Clarigo: Initializing...', window.location.href);
 
+    await loadWhitelist();
+
     const data = await new Promise((resolve) => chrome.storage.local.get('enabled', resolve));
     clarigoEnabled = data.enabled !== false;
     log('Clarigo: Enabled =', clarigoEnabled);
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName !== 'local' || !changes.enabled) return;
-        void applyEnabledState(changes.enabled.newValue !== false);
+        if (areaName !== 'local') return;
+        if (changes.enabled) {
+            void applyEnabledState(changes.enabled.newValue !== false);
+        }
+        if (changes.whitelistedChannels) {
+            void reprocessAfterWhitelistChange();
+        }
     });
 
     if (clarigoEnabled) {
@@ -189,6 +272,7 @@ async function initializeClarigo() {
         if (modelLoaded) log('Clarigo: Processing initial videos');
         else log('Clarigo: Model still loading, will process when ready');
         processVideos();
+        ensureChannelPageButton();
     }, 2000);
 
     const observer = new MutationObserver((mutations) => {
@@ -235,6 +319,7 @@ const navObserver = new MutationObserver(() => {
         lastUrl = currentUrl;
         log('Clarigo: Page navigation detected, re-initializing...');
         if (clarigoEnabled) setTimeout(processVideos, 1000);
+        setTimeout(ensureChannelPageButton, 1000);
     }
 });
 if (titleEl) {

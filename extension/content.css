@@ -8,3 +8,28 @@
 .cg-hide {
   display: none !important;
 }
+
+.cg-whitelist-channel-btn {
+  margin-left: 8px;
+  padding: 0 16px;
+  height: 36px;
+  border: 1px solid #0d6b4c;
+  border-radius: 18px;
+  background: #fff;
+  color: #0d6b4c;
+  font: 500 14px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cg-whitelist-channel-btn:hover:not(:disabled) {
+  background: #f3faf7;
+}
+
+.cg-whitelist-channel-btn.is-active,
+.cg-whitelist-channel-btn:disabled {
+  border-color: #c8cdd3;
+  background: #f4f6f8;
+  color: #5c6269;
+  cursor: default;
+}

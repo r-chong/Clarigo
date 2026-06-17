@@ -148,6 +148,25 @@
       color: var(--text-muted);
       line-height: 1.35;
     }
+
+    .link-card {
+      margin-top: 10px;
+      padding: 0;
+    }
+
+    .manage-link {
+      display: block;
+      padding: 11px 14px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .manage-link:hover {
+      color: var(--accent-hover);
+    }
   </style>
 </head>
 <body>
@@ -170,6 +189,10 @@
       <input type="checkbox" id="toggle" class="toggle-input" role="switch" aria-labelledby="status">
       <span class="toggle-switch" aria-hidden="true"></span>
     </label>
+  </div>
+
+  <div class="card link-card">
+    <a class="manage-link" href="#" id="manage-whitelist">Manage channel whitelist</a>
   </div>
 
   <script src="popup.js"></script>

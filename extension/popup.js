@@ -5,6 +5,7 @@
 const toggle = document.getElementById('toggle');
 const statusEl = document.getElementById('status');
 const blockedCountEl = document.getElementById('blocked-count');
+const manageWhitelistLink = document.getElementById('manage-whitelist');
 
 function setBlockedCount(count) {
   blockedCountEl.textContent = String(count ?? 0);
@@ -48,4 +49,9 @@ toggle.addEventListener('change', () => {
     setStatus(enabled);
     chrome.runtime.sendMessage({ type: 'enabledChanged', enabled });
   });
+});
+
+manageWhitelistLink.addEventListener('click', (event) => {
+  event.preventDefault();
+  chrome.runtime.openOptionsPage();
 });
