@@ -22,7 +22,7 @@ async function loadModel() {
 
         if (modelLoaded) {
             log('Clarigo: Model loaded successfully');
-            if (!wasLoaded) {
+            if (!wasLoaded && clarigoEnabled) {
                 log('Clarigo: Reprocessing videos now that model is loaded...');
                 setTimeout(() => processVideos(), 500);
             }
@@ -56,6 +56,8 @@ function shouldHideVideo({ title, channelName }) {
 }
 
 function processVideos() {
+    if (!clarigoEnabled) return;
+
     const videoSelectors = [
         'ytd-rich-item-renderer:not(.cg-processed)',
         'ytd-video-renderer:not(.cg-processed)',
@@ -119,9 +121,10 @@ function resetProcessedState() {
     document.querySelectorAll('.cg-processed').forEach((el) => el.classList.remove('cg-processed'));
 }
 
-function applyEnabledState(enabled) {
+async function applyEnabledState(enabled) {
     clarigoEnabled = enabled;
     if (enabled) {
+        await loadModel();
         resetProcessedState();
         processVideos();
     } else {
@@ -131,7 +134,7 @@ function applyEnabledState(enabled) {
 
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'enabledChanged') {
-        applyEnabledState(msg.enabled !== false);
+        void applyEnabledState(msg.enabled !== false);
     }
 });
 
@@ -144,12 +147,20 @@ async function initializeClarigo() {
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName !== 'local' || !changes.enabled) return;
-        applyEnabledState(changes.enabled.newValue !== false);
+        void applyEnabledState(changes.enabled.newValue !== false);
     });
 
-    await loadModel();
+    if (clarigoEnabled) {
+        await loadModel();
+    } else {
+        log('Clarigo: Model filter disabled — skipping model load');
+    }
 
     setTimeout(() => {
+        if (!clarigoEnabled) {
+            log('Clarigo: Model filter disabled — showing all videos');
+            return;
+        }
         if (modelLoaded) log('Clarigo: Processing initial videos');
         else log('Clarigo: Model still loading, will process when ready');
         processVideos();
@@ -177,7 +188,7 @@ async function initializeClarigo() {
             }
             if (shouldProcess) break;
         }
-        if (shouldProcess) {
+        if (shouldProcess && clarigoEnabled) {
             log('Clarigo: New videos detected, processing...');
             debouncedProcessVideos();
         }
@@ -198,7 +209,7 @@ const navObserver = new MutationObserver(() => {
     if (currentUrl !== lastUrl) {
         lastUrl = currentUrl;
         log('Clarigo: Page navigation detected, re-initializing...');
-        setTimeout(processVideos, 1000);
+        if (clarigoEnabled) setTimeout(processVideos, 1000);
     }
 });
 if (titleEl) {

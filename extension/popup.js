@@ -1,13 +1,15 @@
 /**
- * Popup: read/write enabled state from chrome.storage.local.
- * Default enabled is true (on) when key is missing.
+ * Popup: read/write model filter enabled state from chrome.storage.local.
+ * Default enabled is true when the key is missing.
  */
 const toggle = document.getElementById('toggle');
 const statusEl = document.getElementById('status');
 
 function setStatus(enabled) {
-  statusEl.textContent = enabled ? 'Clarigo is on' : 'Clarigo is off';
+  statusEl.textContent = enabled ? 'Filtering is on' : 'Filtering is off';
+  statusEl.classList.toggle('is-on', enabled);
   toggle.checked = !!enabled;
+  toggle.setAttribute('aria-checked', String(!!enabled));
 }
 
 chrome.storage.local.get('enabled', (data) => {
