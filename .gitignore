@@ -23,4 +23,4 @@ crawl-300d-2M.vec.zip
 *.vec.zip
 
 # fastText trained models (regenerate via ml/fasttext/train_fasttext.py)
-ml/trained_models/*.bin
+ml/trained_models/*

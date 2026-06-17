@@ -285,6 +285,7 @@ class ClarigoClassifier {
         
         // Make prediction
         const result = this.predictWithLogisticRegression(features.combined);
+        console.log(`TITLE: ${title}, CHANNEL: ${channelName}, PREDICTION: ${result.prediction}`)
 
         return {
             prediction: result.prediction,
