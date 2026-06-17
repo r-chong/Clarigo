@@ -1,18 +1,46 @@
 /**
- * Popup: read/write enabled state from chrome.storage.local.
- * Default enabled is true (on) when key is missing.
+ * Popup: read/write model filter enabled state from chrome.storage.local.
+ * Default enabled is true when the key is missing.
  */
 const toggle = document.getElementById('toggle');
 const statusEl = document.getElementById('status');
+const blockedCountEl = document.getElementById('blocked-count');
+const manageWhitelistLink = document.getElementById('manage-whitelist');
+
+function setBlockedCount(count) {
+  blockedCountEl.textContent = String(count ?? 0);
+}
 
 function setStatus(enabled) {
-  statusEl.textContent = enabled ? 'Clarigo is on' : 'Clarigo is off';
+  statusEl.textContent = enabled ? 'Filtering is on' : 'Filtering is off';
+  statusEl.classList.toggle('is-on', enabled);
   toggle.checked = !!enabled;
+  toggle.setAttribute('aria-checked', String(!!enabled));
 }
 
 chrome.storage.local.get('enabled', (data) => {
   const enabled = data.enabled !== false;
   setStatus(enabled);
+});
+
+function refreshBlockedCount() {
+  chrome.storage.session.get('blockedCount', (data) => {
+    setBlockedCount(data.blockedCount || 0);
+  });
+}
+
+refreshBlockedCount();
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'session' && changes.blockedCount) {
+    setBlockedCount(changes.blockedCount.newValue);
+  }
+});
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'blockedCountUpdated') {
+    setBlockedCount(msg.count);
+  }
 });
 
 toggle.addEventListener('change', () => {
@@ -21,4 +49,9 @@ toggle.addEventListener('change', () => {
     setStatus(enabled);
     chrome.runtime.sendMessage({ type: 'enabledChanged', enabled });
   });
+});
+
+manageWhitelistLink.addEventListener('click', (event) => {
+  event.preventDefault();
+  chrome.runtime.openOptionsPage();
 });
