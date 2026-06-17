@@ -1,6 +1,6 @@
 {
   "model_type": "Logistic Regression",
-  "training_date": "2026-06-09T16:41:40.671447",
+  "training_date": "2026-06-16T20:36:38.976036",
   "training_samples": 11681,
   "test_samples": 2921,
   "features_used": {
