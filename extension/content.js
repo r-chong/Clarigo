@@ -40,6 +40,30 @@ async function loadModel() {
 /**
  * Policy: hide non-educational videos (prediction === 0).
  */
+function getVideoKey(videoElement, title, channelName) {
+    const anchor = window.ClarigoDOM.getWatchAnchor(videoElement);
+    const href = anchor?.href || anchor?.getAttribute('href') || '';
+    try {
+        const u = new URL(href, window.location.origin);
+        const videoId = u.searchParams.get('v');
+        if (videoId) return videoId;
+        if (u.pathname.startsWith('/shorts/')) return u.pathname;
+        if (u.pathname && u.pathname !== '/') return u.pathname + u.search;
+    } catch {
+        // Fall through to title-based key.
+    }
+
+    const fallbackTitle = title || window.ClarigoDOM.getVideoTitle(videoElement) || '';
+    if (fallbackTitle) return `${fallbackTitle}::${channelName || ''}`;
+    return '';
+}
+
+function recordBlockedDistraction(videoElement, title, channelName) {
+    const key = getVideoKey(videoElement, title, channelName);
+    if (!key) return;
+    chrome.runtime.sendMessage({ type: 'videoBlocked', videoKey: key }).catch(() => {});
+}
+
 function shouldHideVideo({ title, channelName }) {
     if (!modelLoaded || !classifier.isLoaded) return false;
     if (!title) return false;
@@ -94,6 +118,7 @@ function processVideos() {
 
         if (clarigoEnabled && shouldHideVideo({ title, channelName: channel.name })) {
             videoElement.classList.add('cg-hide');
+            recordBlockedDistraction(videoElement, title, channel.name);
             hiddenCount++;
             log(`Clarigo: Hiding video - "${title || '(no title)'}"`, { channelName: channel.name, channelUrl: channel.url });
         } else {
